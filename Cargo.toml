@@ -1,14 +1,13 @@
 [package]
-name = "netlink-packet-wireguard"
-version = "0.3.0"
-authors = ["Leo <leo881003@gmail.com>", "Jake McGinty <me@jake.su>"]
+name = "netlink-packet-amnezia-wireguard"
+version = "0.1.0"
 edition = "2021"
-homepage = "https://github.com/rust-netlink/netlink-packet-wireguard"
-repository = "https://github.com/rust-netlink/netlink-packet-wireguard"
-keywords = ["wireguard", "netlink", "linux"]
+homepage = "https://github.com/frkn-dev/netlink-packet-amnezia-wireguard"
+repository = "https://github.com/frkn-dev/netlink-packet-amnezia-wireguard"
+keywords = ["wireguard", "netlink", "linux", "amnezia"]
 license = "MIT"
 readme = "README.md"
-description = "Wireguard generic netlink packet definitions"
+description = "Wireguard generic netlink packet definitions with Amnezia-Wireguard support"
 
 [dependencies]
 libc = "0.2.98"

@@ -49,7 +49,7 @@ pub trait WgFamily: Default + Clone + std::fmt::Debug {
     const NAME: &'static str;
     const VERSION: u8;
 
-    type Attribute;
+    type Attribute: From<WireguardAttribute>;
 }
 
 /* =========================

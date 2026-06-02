@@ -59,6 +59,26 @@ pub enum WireguardAttribute {
     Other(DefaultNla),
 }
 
+impl TryFrom<AmneziaWgAttribute> for WireguardAttribute {
+    type Error = &'static str;
+
+    fn try_from(attr: AmneziaWgAttribute) -> Result<Self, Self::Error> {
+        match attr {
+            AmneziaWgAttribute::IfIndex(v) => Ok(Self::IfIndex(v)),
+            AmneziaWgAttribute::IfName(v) => Ok(Self::IfName(v)),
+            AmneziaWgAttribute::PrivateKey(v) => Ok(Self::PrivateKey(v)),
+            AmneziaWgAttribute::PublicKey(v) => Ok(Self::PublicKey(v)),
+            AmneziaWgAttribute::ListenPort(v) => Ok(Self::ListenPort(v)),
+            AmneziaWgAttribute::Fwmark(v) => Ok(Self::Fwmark(v)),
+            AmneziaWgAttribute::Peers(v) => Ok(Self::Peers(v)),
+            AmneziaWgAttribute::Flags(v) => Ok(Self::Flags(v)),
+            AmneziaWgAttribute::Other(v) => Ok(Self::Other(v)),
+
+            _ => Err("amnezia-specific attribute"),
+        }
+    }
+}
+
 impl WireguardAttribute {
     pub const WG_KEY_LEN: usize = WG_KEY_LEN;
 }
@@ -191,6 +211,22 @@ pub enum AmneziaWgAttribute {
     DataConfirm(u16),   // DC
     DataTransport(u16), // DT
     Other(DefaultNla),
+}
+
+impl From<WireguardAttribute> for AmneziaWgAttribute {
+    fn from(attr: WireguardAttribute) -> Self {
+        match attr {
+            WireguardAttribute::IfIndex(v) => Self::IfIndex(v),
+            WireguardAttribute::IfName(v) => Self::IfName(v),
+            WireguardAttribute::PrivateKey(v) => Self::PrivateKey(v),
+            WireguardAttribute::PublicKey(v) => Self::PublicKey(v),
+            WireguardAttribute::ListenPort(v) => Self::ListenPort(v),
+            WireguardAttribute::Fwmark(v) => Self::Fwmark(v),
+            WireguardAttribute::Peers(v) => Self::Peers(v),
+            WireguardAttribute::Flags(v) => Self::Flags(v),
+            WireguardAttribute::Other(v) => Self::Other(v),
+        }
+    }
 }
 
 impl AmneziaWgAttribute {
