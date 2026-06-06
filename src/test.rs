@@ -10,10 +10,9 @@ use netlink_packet_generic::{GenlBuffer, GenlHeader};
 use pretty_assertions::assert_eq;
 
 use crate::{
-    AmneziaWg, AmneziaWgAttribute, Wireguard, WireguardAddressFamily,
-    WireguardAllowedIp, WireguardAllowedIpAttr, WireguardAttribute,
-    WireguardCmd, WireguardMessage, WireguardPeer, WireguardPeerAttribute,
-    WireguardTimeSpec,
+    AmneziaWireguardAddressFamily, AmneziaWireguardAllowedIp, AmneziaWireguardAllowedIpAttr,
+    AmneziaWireguardAttribute, AmneziaWireguardCmd, AmneziaWireguardMessage, AmneziaWireguardPeer,
+    AmneziaWireguardPeerAttribute, AmneziaWireguardTimeSpec,
 };
 
 // nlmon capture of netlink packet sent by `sudo wg` command with netlink
@@ -24,16 +23,16 @@ fn test_query_request() {
         0x00, 0x01, 0x00, 0x00, 0x07, 0x00, 0x02, 0x00, 0x63, 0x6e, 0x00, 0x00,
     ];
 
-    let expected: WireguardMessage<Wireguard> = WireguardMessage {
-        cmd: WireguardCmd::GetDevice,
-        attributes: vec![WireguardAttribute::IfName("cn".to_string())],
+    let expected: AmneziaWireguardMessage = AmneziaWireguardMessage {
+        cmd: AmneziaWireguardCmd::GetDevice,
+        attributes: vec![AmneziaWireguardAttribute::IfName("cn".to_string())],
     };
 
     let header = GenlHeader::parse(&GenlBuffer::new(&raw)).unwrap();
 
     assert_eq!(
         expected,
-        WireguardMessage::<Wireguard>::parse_with_param(&raw[4..], header)
+        AmneziaWireguardMessage::parse_with_param(&raw[4..], header)
             .unwrap(),
     );
     let mut buffer = vec![0; expected.buffer_len() + header.buffer_len()];
@@ -77,52 +76,52 @@ fn test_query_reply() {
     ];
 
     let attributes = vec![
-        WireguardAttribute::ListenPort(32812),
-        WireguardAttribute::Fwmark(0),
-        WireguardAttribute::IfIndex(3),
-        WireguardAttribute::IfName("cn".to_string()),
-        WireguardAttribute::PrivateKey([
+        AmneziaWireguardAttribute::ListenPort(32812),
+        AmneziaWireguardAttribute::Fwmark(0),
+        AmneziaWireguardAttribute::IfIndex(3),
+        AmneziaWireguardAttribute::IfName("cn".to_string()),
+        AmneziaWireguardAttribute::PrivateKey([
             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
             19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
         ]),
-        WireguardAttribute::PublicKey([
+        AmneziaWireguardAttribute::PublicKey([
             204, 175, 16, 225, 169, 215, 208, 95, 242, 189, 210, 160, 241, 120,
             45, 151, 70, 154, 28, 247, 190, 136, 15, 104, 117, 167, 121, 147,
             93, 29, 33, 117,
         ]),
-        WireguardAttribute::Peers(vec![WireguardPeer(vec![
-            WireguardPeerAttribute::PublicKey([
+        AmneziaWireguardAttribute::Peers(vec![AmneziaWireguardPeer(vec![
+            AmneziaWireguardPeerAttribute::PublicKey([
                 119, 220, 154, 192, 179, 240, 197, 231, 91, 184, 211, 66, 45,
                 136, 236, 146, 209, 58, 52, 35, 34, 144, 135, 130, 21, 81, 87,
                 25, 105, 222, 160, 68,
             ]),
-            WireguardPeerAttribute::PresharedKey([
+            AmneziaWireguardPeerAttribute::PresharedKey([
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             ]),
-            WireguardPeerAttribute::LastHandshake(WireguardTimeSpec {
+            AmneziaWireguardPeerAttribute::LastHandshake(AmneziaWireguardTimeSpec {
                 seconds: 1769415834,
                 nano_seconds: 262671874,
             }),
-            WireguardPeerAttribute::PersistentKeepalive(25),
-            WireguardPeerAttribute::TxBytes(1917056),
-            WireguardPeerAttribute::RxBytes(30426264),
-            WireguardPeerAttribute::ProtocolVersion(1),
-            WireguardPeerAttribute::Endpoint(
+            AmneziaWireguardPeerAttribute::PersistentKeepalive(25),
+            AmneziaWireguardPeerAttribute::TxBytes(1917056),
+            AmneziaWireguardPeerAttribute::RxBytes(30426264),
+            AmneziaWireguardPeerAttribute::ProtocolVersion(1),
+            AmneziaWireguardPeerAttribute::Endpoint(
                 std::net::SocketAddr::from_str("1.1.1.1:1111").unwrap(),
             ),
-            WireguardPeerAttribute::AllowedIps(vec![WireguardAllowedIp(vec![
-                WireguardAllowedIpAttr::Cidr(0),
-                WireguardAllowedIpAttr::Family(WireguardAddressFamily::Ipv4),
-                WireguardAllowedIpAttr::IpAddr(IpAddr::V4(
+            AmneziaWireguardPeerAttribute::AllowedIps(vec![AmneziaWireguardAllowedIp(vec![
+                AmneziaWireguardAllowedIpAttr::Cidr(0),
+                AmneziaWireguardAllowedIpAttr::Family(AmneziaWireguardAddressFamily::Ipv4),
+                AmneziaWireguardAllowedIpAttr::IpAddr(IpAddr::V4(
                     Ipv4Addr::UNSPECIFIED,
                 )),
             ])]),
         ])]),
     ];
 
-    let expected: WireguardMessage<Wireguard> = WireguardMessage {
-        cmd: WireguardCmd::GetDevice,
+    let expected: AmneziaWireguardMessage = AmneziaWireguardMessage {
+        cmd: AmneziaWireguardCmd::GetDevice,
         attributes,
     };
 
@@ -130,7 +129,7 @@ fn test_query_reply() {
 
     assert_eq!(
         expected,
-        WireguardMessage::parse_with_param(&raw[4..], header).unwrap(),
+        AmneziaWireguardMessage::parse_with_param(&raw[4..], header).unwrap(),
     );
 
     let mut buffer = vec![0; expected.buffer_len() + header.buffer_len()];
@@ -142,13 +141,13 @@ fn test_query_reply() {
 #[test]
 fn test_amnezia_junk_parameters() {
     // Message with Amnezia Specific Junk params
-    let msg: WireguardMessage<AmneziaWg> = WireguardMessage {
-        cmd: WireguardCmd::SetDevice,
+    let msg: AmneziaWireguardMessage = AmneziaWireguardMessage {
+        cmd: AmneziaWireguardCmd::SetDevice,
         attributes: vec![
-            AmneziaWgAttribute::IfName("awg0".into()),
-            AmneziaWgAttribute::JC(4),
-            AmneziaWgAttribute::Jmin(40),
-            AmneziaWgAttribute::Jmax(70),
+            AmneziaWireguardAttribute::IfName("awg0".into()),
+            AmneziaWireguardAttribute::JC(4),
+            AmneziaWireguardAttribute::Jmin(40),
+            AmneziaWireguardAttribute::Jmax(70),
         ],
     };
 
@@ -176,11 +175,11 @@ fn test_amnezia_junk_parameters() {
 
 #[test]
 fn test_amnezia_magic_headers() {
-    let msg: WireguardMessage<AmneziaWg> = WireguardMessage {
-        cmd: WireguardCmd::SetDevice,
+    let msg: AmneziaWireguardMessage = AmneziaWireguardMessage {
+        cmd: AmneziaWireguardCmd::SetDevice,
         attributes: vec![
-            AmneziaWgAttribute::H1(0x1122), // u16
-            AmneziaWgAttribute::S1(0x5566), // u16
+            AmneziaWireguardAttribute::H1(0x1122), // u16
+            AmneziaWireguardAttribute::S1(0x5566), // u16
         ],
     };
 

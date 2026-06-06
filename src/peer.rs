@@ -9,32 +9,32 @@ use netlink_packet_core::{
 };
 
 use super::{
-    allowedip::WireguardAllowedIps,
+    allowedip::AmneziaWireguardAllowedIps,
     socket_addr::{
         emit_socket_addr, parse_socket_addr, SOCKET_ADDR_V4_LEN,
         SOCKET_ADDR_V6_LEN,
     },
 };
-use crate::WireguardAllowedIp;
+use crate::AmneziaWireguardAllowedIp;
 
-pub(crate) struct WireguardPeers(pub(crate) Vec<WireguardPeer>);
+pub(crate) struct AmneziaWireguardPeers(pub(crate) Vec<AmneziaWireguardPeer>);
 
 impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>>
-    for WireguardPeers
+    for AmneziaWireguardPeers
 {
     fn parse(buf: &NlaBuffer<&'a T>) -> Result<Self, DecodeError> {
         let mut ret = Vec::new();
         let nlas = NlasIterator::new(buf.value());
         for nla in nlas {
             let nla = nla?;
-            ret.push(WireguardPeer::parse(&nla)?);
+            ret.push(AmneziaWireguardPeer::parse(&nla)?);
         }
         Ok(Self(ret))
     }
 }
 
-impl std::ops::Deref for WireguardPeers {
-    type Target = Vec<WireguardPeer>;
+impl std::ops::Deref for AmneziaWireguardPeers {
+    type Target = Vec<AmneziaWireguardPeer>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -42,23 +42,23 @@ impl std::ops::Deref for WireguardPeers {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct WireguardPeer(pub Vec<WireguardPeerAttribute>);
+pub struct AmneziaWireguardPeer(pub Vec<AmneziaWireguardPeerAttribute>);
 
 impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>>
-    for WireguardPeer
+    for AmneziaWireguardPeer
 {
     fn parse(buf: &NlaBuffer<&'a T>) -> Result<Self, DecodeError> {
         let mut ret = Vec::new();
         let nlas = NlasIterator::new(buf.value());
         for nla in nlas {
             let nla = nla?;
-            ret.push(WireguardPeerAttribute::parse(&nla)?);
+            ret.push(AmneziaWireguardPeerAttribute::parse(&nla)?);
         }
         Ok(Self(ret))
     }
 }
 
-impl Nla for WireguardPeer {
+impl Nla for AmneziaWireguardPeer {
     fn kind(&self) -> u16 {
         // linux kernel always set it to 0
         NLA_F_NESTED
@@ -73,8 +73,8 @@ impl Nla for WireguardPeer {
     }
 }
 
-impl std::ops::Deref for WireguardPeer {
-    type Target = Vec<WireguardPeerAttribute>;
+impl std::ops::Deref for AmneziaWireguardPeer {
+    type Target = Vec<AmneziaWireguardPeerAttribute>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -84,12 +84,12 @@ impl std::ops::Deref for WireguardPeer {
 const TIMESPEC_LEN: usize = 16;
 
 #[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
-pub struct WireguardTimeSpec {
+pub struct AmneziaWireguardTimeSpec {
     pub seconds: i64,
     pub nano_seconds: i64,
 }
 
-impl Emitable for WireguardTimeSpec {
+impl Emitable for AmneziaWireguardTimeSpec {
     fn buffer_len(&self) -> usize {
         TIMESPEC_LEN
     }
@@ -101,7 +101,7 @@ impl Emitable for WireguardTimeSpec {
 }
 
 impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>>
-    for WireguardTimeSpec
+    for AmneziaWireguardTimeSpec
 {
     fn parse(buf: &NlaBuffer<&'a T>) -> Result<Self, DecodeError> {
         let data = buf.value();
@@ -137,21 +137,21 @@ const WGPEER_A_PROTOCOL_VERSION: u16 = 10;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
-pub enum WireguardPeerAttribute {
+pub enum AmneziaWireguardPeerAttribute {
     PublicKey([u8; NOISE_PUBLIC_KEY_LEN]),
     PresharedKey([u8; NOISE_SYMMETRIC_KEY_LEN]),
     Endpoint(SocketAddr),
     PersistentKeepalive(u16),
-    LastHandshake(WireguardTimeSpec),
+    LastHandshake(AmneziaWireguardTimeSpec),
     RxBytes(u64),
     TxBytes(u64),
-    AllowedIps(Vec<WireguardAllowedIp>),
+    AllowedIps(Vec<AmneziaWireguardAllowedIp>),
     ProtocolVersion(u32),
     Flags(u32),
     Other(DefaultNla),
 }
 
-impl Nla for WireguardPeerAttribute {
+impl Nla for AmneziaWireguardPeerAttribute {
     fn value_len(&self) -> usize {
         match self {
             Self::PublicKey(v) => size_of_val(v),
@@ -207,7 +207,7 @@ impl Nla for WireguardPeerAttribute {
 }
 
 impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>>
-    for WireguardPeerAttribute
+    for AmneziaWireguardPeerAttribute
 {
     fn parse(buf: &NlaBuffer<&'a T>) -> Result<Self, DecodeError> {
         let payload = buf.value();
@@ -238,7 +238,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>>
                 )?)
             }
             WGPEER_A_LAST_HANDSHAKE_TIME => Self::LastHandshake(
-                WireguardTimeSpec::parse(buf)
+                AmneziaWireguardTimeSpec::parse(buf)
                     .context("invalid WGPEER_A_LAST_HANDSHAKE_TIME")?,
             ),
             WGPEER_A_RX_BYTES => Self::RxBytes(
@@ -250,7 +250,7 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>>
                     .context("invalid WGPEER_A_TX_BYTES value")?,
             ),
             WGPEER_A_ALLOWEDIPS => {
-                Self::AllowedIps(WireguardAllowedIps::parse(buf)?.0)
+                Self::AllowedIps(AmneziaWireguardAllowedIps::parse(buf)?.0)
             }
             WGPEER_A_PROTOCOL_VERSION => Self::ProtocolVersion(
                 parse_u32(payload)

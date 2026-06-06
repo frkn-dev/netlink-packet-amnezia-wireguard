@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 
-//! The `netlink-packet-wireguard` crate is designed to paring and emitting
-//! generic netlink packet for wireguard interface. The goal of this crate is
-//! saving crate user from reading kernel netlink codes.
+//! The `netlink-packet-amnezia-wireguard` crate is designed for parsing and
+//! emitting generic netlink packets for Amnezia WireGuard interface.
 
 mod allowedip;
 mod attribute;
@@ -15,9 +14,9 @@ mod test;
 
 pub use self::{
     allowedip::{
-        WireguardAddressFamily, WireguardAllowedIp, WireguardAllowedIpAttr,
+        AmneziaWireguardAddressFamily, AmneziaWireguardAllowedIp, AmneziaWireguardAllowedIpAttr,
     },
-    attribute::{AmneziaWgAttribute, WireguardAttribute},
-    message::{AmneziaWg, WgFamily, Wireguard, WireguardCmd, WireguardMessage},
-    peer::{WireguardPeer, WireguardPeerAttribute, WireguardTimeSpec},
+    attribute::AmneziaWireguardAttribute,
+    message::{AmneziaWireguardCmd, AmneziaWireguardMessage},
+    peer::{AmneziaWireguardPeer, AmneziaWireguardPeerAttribute, AmneziaWireguardTimeSpec},
 };

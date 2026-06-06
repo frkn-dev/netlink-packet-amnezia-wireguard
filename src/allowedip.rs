@@ -11,24 +11,24 @@ const WGALLOWEDIP_A_FAMILY: u16 = 1;
 const WGALLOWEDIP_A_IPADDR: u16 = 2;
 const WGALLOWEDIP_A_CIDR_MASK: u16 = 3;
 
-pub(crate) struct WireguardAllowedIps(pub(crate) Vec<WireguardAllowedIp>);
+pub(crate) struct AmneziaWireguardAllowedIps(pub(crate) Vec<AmneziaWireguardAllowedIp>);
 
 impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>>
-    for WireguardAllowedIps
+    for AmneziaWireguardAllowedIps
 {
     fn parse(buf: &NlaBuffer<&'a T>) -> Result<Self, DecodeError> {
         let mut ret = Vec::new();
         let nlas = NlasIterator::new(buf.value());
         for nla in nlas {
             let nla = nla?;
-            ret.push(WireguardAllowedIp::parse(&nla)?);
+            ret.push(AmneziaWireguardAllowedIp::parse(&nla)?);
         }
         Ok(Self(ret))
     }
 }
 
-impl std::ops::Deref for WireguardAllowedIps {
-    type Target = Vec<WireguardAllowedIp>;
+impl std::ops::Deref for AmneziaWireguardAllowedIps {
+    type Target = Vec<AmneziaWireguardAllowedIp>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -36,23 +36,23 @@ impl std::ops::Deref for WireguardAllowedIps {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct WireguardAllowedIp(pub Vec<WireguardAllowedIpAttr>);
+pub struct AmneziaWireguardAllowedIp(pub Vec<AmneziaWireguardAllowedIpAttr>);
 
 impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>>
-    for WireguardAllowedIp
+    for AmneziaWireguardAllowedIp
 {
     fn parse(buf: &NlaBuffer<&'a T>) -> Result<Self, DecodeError> {
         let mut ret = Vec::new();
         let nlas = NlasIterator::new(buf.value());
         for nla in nlas {
             let nla = nla?;
-            ret.push(WireguardAllowedIpAttr::parse(&nla)?);
+            ret.push(AmneziaWireguardAllowedIpAttr::parse(&nla)?);
         }
         Ok(Self(ret))
     }
 }
 
-impl Nla for WireguardAllowedIp {
+impl Nla for AmneziaWireguardAllowedIp {
     fn kind(&self) -> u16 {
         // linux kernel always set it to 0
         NLA_F_NESTED
@@ -67,8 +67,8 @@ impl Nla for WireguardAllowedIp {
     }
 }
 
-impl std::ops::Deref for WireguardAllowedIp {
-    type Target = Vec<WireguardAllowedIpAttr>;
+impl std::ops::Deref for AmneziaWireguardAllowedIp {
+    type Target = Vec<AmneziaWireguardAllowedIpAttr>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -80,13 +80,13 @@ const AF_INET: u16 = 2;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
-pub enum WireguardAddressFamily {
+pub enum AmneziaWireguardAddressFamily {
     Ipv4,
     Ipv6,
     Other(u16),
 }
 
-impl From<u16> for WireguardAddressFamily {
+impl From<u16> for AmneziaWireguardAddressFamily {
     fn from(d: u16) -> Self {
         match d {
             AF_INET6 => Self::Ipv6,
@@ -96,26 +96,26 @@ impl From<u16> for WireguardAddressFamily {
     }
 }
 
-impl From<WireguardAddressFamily> for u16 {
-    fn from(v: WireguardAddressFamily) -> u16 {
+impl From<AmneziaWireguardAddressFamily> for u16 {
+    fn from(v: AmneziaWireguardAddressFamily) -> u16 {
         match v {
-            WireguardAddressFamily::Ipv6 => AF_INET6,
-            WireguardAddressFamily::Ipv4 => AF_INET,
-            WireguardAddressFamily::Other(d) => d,
+            AmneziaWireguardAddressFamily::Ipv6 => AF_INET6,
+            AmneziaWireguardAddressFamily::Ipv4 => AF_INET,
+            AmneziaWireguardAddressFamily::Other(d) => d,
         }
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
-pub enum WireguardAllowedIpAttr {
-    Family(WireguardAddressFamily),
+pub enum AmneziaWireguardAllowedIpAttr {
+    Family(AmneziaWireguardAddressFamily),
     IpAddr(IpAddr),
     Cidr(u8),
     Other(DefaultNla),
 }
 
-impl Nla for WireguardAllowedIpAttr {
+impl Nla for AmneziaWireguardAllowedIpAttr {
     fn value_len(&self) -> usize {
         match self {
             Self::Family(_) => 2,
@@ -151,7 +151,7 @@ impl Nla for WireguardAllowedIpAttr {
 }
 
 impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>>
-    for WireguardAllowedIpAttr
+    for AmneziaWireguardAllowedIpAttr
 {
     fn parse(buf: &NlaBuffer<&'a T>) -> Result<Self, DecodeError> {
         let payload = buf.value();

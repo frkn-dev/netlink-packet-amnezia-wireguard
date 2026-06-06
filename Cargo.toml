@@ -7,7 +7,7 @@ repository = "https://github.com/frkn-dev/netlink-packet-amnezia-wireguard"
 keywords = ["wireguard", "netlink", "linux", "amnezia"]
 license = "MIT"
 readme = "README.md"
-description = "Wireguard generic netlink packet definitions with Amnezia-Wireguard support"
+description = "Amnezia WireGuard generic netlink packet definitions"
 
 [dependencies]
 libc = "0.2.98"

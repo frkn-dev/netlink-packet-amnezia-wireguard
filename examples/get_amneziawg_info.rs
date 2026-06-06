@@ -8,10 +8,9 @@ use netlink_packet_core::{
     NetlinkMessage, NetlinkPayload, NLM_F_DUMP, NLM_F_REQUEST,
 };
 use netlink_packet_generic::GenlMessage;
-use netlink_packet_wireguard::{
-    AmneziaWg, AmneziaWgAttribute, WgFamily, WireguardAllowedIp,
-    WireguardAllowedIpAttr, WireguardCmd, WireguardMessage,
-    WireguardPeerAttribute,
+use netlink_packet_amnezia_wireguard::{
+    AmneziaWireguardAllowedIp, AmneziaWireguardAllowedIpAttr, AmneziaWireguardAttribute,
+    AmneziaWireguardCmd, AmneziaWireguardMessage, AmneziaWireguardPeerAttribute,
 };
 
 #[tokio::main]
@@ -27,13 +26,12 @@ async fn main() {
     let (connection, mut handle, _) = new_connection().unwrap();
     tokio::spawn(connection);
 
-    let msg: WireguardMessage<AmneziaWg> = WireguardMessage {
-        cmd: WireguardCmd::GetDevice,
-        attributes: vec![AmneziaWgAttribute::IfName(argv[1].clone())],
+    let msg = AmneziaWireguardMessage {
+        cmd: AmneziaWireguardCmd::GetDevice,
+        attributes: vec![AmneziaWireguardAttribute::IfName(argv[1].clone())],
     };
 
-    let genlmsg: GenlMessage<WireguardMessage<AmneziaWg>> =
-        GenlMessage::from_payload(msg);
+    let genlmsg: GenlMessage<AmneziaWireguardMessage> = GenlMessage::from_payload(msg);
     let mut nlmsg = NetlinkMessage::from(genlmsg);
     nlmsg.header.flags = NLM_F_REQUEST | NLM_F_DUMP;
 
@@ -53,36 +51,34 @@ async fn main() {
     }
 }
 
-fn print_wg_payload<F: WgFamily<Attribute = AmneziaWgAttribute>>(
-    wg: WireguardMessage<F>,
-) {
+fn print_wg_payload(wg: AmneziaWireguardMessage) {
     for attr in &wg.attributes {
         match attr {
-            AmneziaWgAttribute::IfIndex(v) => println!("IfIndex: {}", v),
-            AmneziaWgAttribute::IfName(v) => println!("IfName: {}", v),
-            AmneziaWgAttribute::PrivateKey(_) => {
+            AmneziaWireguardAttribute::IfIndex(v) => println!("IfIndex: {}", v),
+            AmneziaWireguardAttribute::IfName(v) => println!("IfName: {}", v),
+            AmneziaWireguardAttribute::PrivateKey(_) => {
                 println!("PrivateKey: (hidden)")
             }
-            AmneziaWgAttribute::PublicKey(v) => {
+            AmneziaWireguardAttribute::PublicKey(v) => {
                 println!("PublicKey: {}", base64::encode(v))
             }
-            AmneziaWgAttribute::ListenPort(v) => {
+            AmneziaWireguardAttribute::ListenPort(v) => {
                 println!("ListenPort: {}", v)
             }
-            AmneziaWgAttribute::Fwmark(v) => println!("Fwmark: {}", v),
-            AmneziaWgAttribute::Peers(peers) => {
+            AmneziaWireguardAttribute::Fwmark(v) => println!("Fwmark: {}", v),
+            AmneziaWireguardAttribute::Peers(peers) => {
                 for peer in peers {
                     println!("Peer: ");
                     print_wg_peer(&peer);
                 }
             }
-            AmneziaWgAttribute::JC(v) => {
+            AmneziaWireguardAttribute::JC(v) => {
                 println!("JunkCount: {}", v)
             }
-            AmneziaWgAttribute::Jmin(v) => {
+            AmneziaWireguardAttribute::Jmin(v) => {
                 println!("JunkPacketMinSize: {}", v)
             }
-            AmneziaWgAttribute::Jmax(v) => {
+            AmneziaWireguardAttribute::Jmax(v) => {
                 println!("JunkPacketMaxSize: {}", v)
             }
             _ => (),
@@ -90,27 +86,27 @@ fn print_wg_payload<F: WgFamily<Attribute = AmneziaWgAttribute>>(
     }
 }
 
-fn print_wg_peer(attrs: &[WireguardPeerAttribute]) {
+fn print_wg_peer(attrs: &[AmneziaWireguardPeerAttribute]) {
     for attr in attrs {
         match attr {
-            WireguardPeerAttribute::PublicKey(v) => {
+            AmneziaWireguardPeerAttribute::PublicKey(v) => {
                 println!("  PublicKey: {}", base64::encode(v))
             }
-            WireguardPeerAttribute::PresharedKey(_) => {
+            AmneziaWireguardPeerAttribute::PresharedKey(_) => {
                 println!("  PresharedKey: (hidden)")
             }
-            WireguardPeerAttribute::Endpoint(v) => {
+            AmneziaWireguardPeerAttribute::Endpoint(v) => {
                 println!("  Endpoint: {}", v)
             }
-            WireguardPeerAttribute::PersistentKeepalive(v) => {
+            AmneziaWireguardPeerAttribute::PersistentKeepalive(v) => {
                 println!("  PersistentKeepalive: {}", v)
             }
-            WireguardPeerAttribute::LastHandshake(v) => {
+            AmneziaWireguardPeerAttribute::LastHandshake(v) => {
                 println!("  LastHandshake: {:?}", v)
             }
-            WireguardPeerAttribute::RxBytes(v) => println!("  RxBytes: {}", v),
-            WireguardPeerAttribute::TxBytes(v) => println!("  TxBytes: {}", v),
-            WireguardPeerAttribute::AllowedIps(ips) => {
+            AmneziaWireguardPeerAttribute::RxBytes(v) => println!("  RxBytes: {}", v),
+            AmneziaWireguardPeerAttribute::TxBytes(v) => println!("  TxBytes: {}", v),
+            AmneziaWireguardPeerAttribute::AllowedIps(ips) => {
                 for ip in ips {
                     print_wg_allowedip(&ip);
                 }
@@ -120,16 +116,16 @@ fn print_wg_peer(attrs: &[WireguardPeerAttribute]) {
     }
 }
 
-fn print_wg_allowedip(nlas: &WireguardAllowedIp) -> Option<()> {
+fn print_wg_allowedip(nlas: &AmneziaWireguardAllowedIp) -> Option<()> {
     let ipaddr = nlas.iter().find_map(|nla| {
-        if let WireguardAllowedIpAttr::IpAddr(addr) = nla {
+        if let AmneziaWireguardAllowedIpAttr::IpAddr(addr) = nla {
             Some(*addr)
         } else {
             None
         }
     })?;
     let cidr = nlas.iter().find_map(|nla| {
-        if let WireguardAllowedIpAttr::Cidr(cidr) = nla {
+        if let AmneziaWireguardAllowedIpAttr::Cidr(cidr) = nla {
             Some(*cidr)
         } else {
             None
