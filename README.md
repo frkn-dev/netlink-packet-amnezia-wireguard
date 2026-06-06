@@ -1,6 +1,120 @@
 # netlink-packet-amnezia-wireguard
 
-A Rust crate for Amnezia WireGuard generic netlink packet definitions.
+[![Crates.io](https://img.shields.io/crates/v/netlink-packet-amnezia-wireguard)](https://crates.io/crates/netlink-packet-amnezia-wireguard)
+[![Docs.rs](https://docs.rs/netlink-packet-amnezia-wireguard/badge.svg)](https://docs.rs/netlink-packet-amnezia-wireguard)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-This crate is a fork focused specifically on AmneziaWG support.
+A Rust crate for parsing and emitting **Amnezia WireGuard** generic netlink packets on Linux.
+
+This is a specialized fork focused specifically on **AmneziaWG** kernel module support.  
 For plain WireGuard, use the original [`netlink-packet-wireguard`](https://crates.io/crates/netlink-packet-wireguard) crate.
+
+## What is AmneziaWG?
+
+[AmneziaWG](https://docs.amnezia.org/documentation/amnezia-wg/) is a fork of WireGuard that adds junk-packet padding and magic headers to mask WireGuard traffic from Deep Packet Inspection (DPI). This crate allows you to configure AmneziaWG interfaces via the kernel netlink API the same way `wg` / `awg` tools do.
+
+## Installation
+
+Add this to your `Cargo.toml`:
+
+```toml
+[dependencies]
+netlink-packet-amnezia-wireguard = "0.1"
+```
+
+## Quick Start
+
+### Get device info
+
+```rust
+use netlink_packet_amnezia_wireguard::{
+    AmneziaWireguardAttribute, AmneziaWireguardCmd, AmneziaWireguardMessage,
+};
+
+let msg = AmneziaWireguardMessage {
+    cmd: AmneziaWireguardCmd::GetDevice,
+    attributes: vec![AmneziaWireguardAttribute::IfName("awg0".into())],
+};
+```
+
+### Set device with Amnezia-specific parameters
+
+```rust
+use netlink_packet_amnezia_wireguard::{
+    AmneziaWireguardAddressFamily,
+    AmneziaWireguardAllowedIp,
+    AmneziaWireguardAllowedIpAttr,
+    AmneziaWireguardAttribute,
+    AmneziaWireguardCmd,
+    AmneziaWireguardMessage,
+    AmneziaWireguardPeer,
+    AmneziaWireguardPeerAttribute,
+};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+
+let msg = AmneziaWireguardMessage {
+    cmd: AmneziaWireguardCmd::SetDevice,
+    attributes: vec![
+        AmneziaWireguardAttribute::IfName("awg0".into()),
+        AmneziaWireguardAttribute::ListenPort(51820),
+        // AmneziaWG-specific junk packet settings
+        AmneziaWireguardAttribute::JC(4),
+        AmneziaWireguardAttribute::Jmin(40),
+        AmneziaWireguardAttribute::Jmax(70),
+        AmneziaWireguardAttribute::S1(0x5566),
+        AmneziaWireguardAttribute::H1(0x1122),
+        AmneziaWireguardAttribute::Peers(vec![
+            AmneziaWireguardPeer(vec![
+                AmneziaWireguardPeerAttribute::PublicKey(peer_pub_key),
+                AmneziaWireguardPeerAttribute::Endpoint(SocketAddr::new(
+                    IpAddr::V4(Ipv4Addr::new(10, 10, 10, 1)),
+                    51820,
+                )),
+                AmneziaWireguardPeerAttribute::AllowedIps(vec![
+                    AmneziaWireguardAllowedIp(vec![
+                        AmneziaWireguardAllowedIpAttr::Family(
+                            AmneziaWireguardAddressFamily::Ipv4,
+                        ),
+                        AmneziaWireguardAllowedIpAttr::IpAddr("0.0.0.0".parse().unwrap()),
+                        AmneziaWireguardAllowedIpAttr::Cidr(0),
+                    ]),
+                ]),
+            ]),
+        ]),
+    ],
+};
+```
+
+### Full examples
+
+See the [`examples/`](./examples) directory for complete async programs using `genetlink` and `tokio`.
+
+```bash
+cargo run --example get_amneziawg_info -- awg0
+cargo run --example set_amneziawg -- awg0
+```
+
+## Supported attributes
+
+In addition to standard WireGuard attributes (`PrivateKey`, `PublicKey`, `Peers`, `ListenPort`, etc.), the following AmneziaWG-specific fields are supported:
+
+| Attribute | Description |
+|-----------|-------------|
+| `JC` | Junk packet count |
+| `Jmin` | Junk packet minimum size |
+| `Jmax` | Junk packet maximum size |
+| `S1` … `S4` | Magic header values |
+| `H1` … `H4` | Magic header values |
+| `I1` … `I5` | Intermediate header values |
+| `DataInit` (`DI`) | Data init packet size |
+| `DataResponse` (`DR`) | Data response packet size |
+| `DataConfirm` (`DC`) | Data confirm packet size |
+| `DataTransport` (`DT`) | Data transport packet size |
+
+## License
+
+This project is licensed under the [MIT License](./LICENSE).
+
+## Acknowledgements
+
+Based on the original [`netlink-packet-wireguard`](https://github.com/rust-netlink/netlink-packet-wireguard) crate by the rust-netlink team.
