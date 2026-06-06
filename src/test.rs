@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 use std::{
-    net::{IpAddr, Ipv4Addr},
+    net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV6},
     str::FromStr,
 };
 
@@ -10,10 +10,26 @@ use netlink_packet_generic::{GenlBuffer, GenlHeader};
 use pretty_assertions::assert_eq;
 
 use crate::{
-    AmneziaWireguardAddressFamily, AmneziaWireguardAllowedIp, AmneziaWireguardAllowedIpAttr,
-    AmneziaWireguardAttribute, AmneziaWireguardCmd, AmneziaWireguardMessage, AmneziaWireguardPeer,
+    AmneziaWireguardAddressFamily, AmneziaWireguardAllowedIp,
+    AmneziaWireguardAllowedIpAttr, AmneziaWireguardAttribute,
+    AmneziaWireguardCmd, AmneziaWireguardMessage, AmneziaWireguardPeer,
     AmneziaWireguardPeerAttribute, AmneziaWireguardTimeSpec,
 };
+
+fn roundtrip_msg(
+    msg: AmneziaWireguardMessage,
+) -> AmneziaWireguardMessage {
+    let header = GenlHeader {
+        cmd: msg.cmd.into(),
+        version: 2,
+    };
+    let header_len = header.buffer_len();
+    let mut buffer = vec![0; msg.buffer_len() + header_len];
+    header.emit(&mut buffer);
+    msg.emit(&mut buffer[header_len..]);
+    AmneziaWireguardMessage::parse_with_param(&buffer[header_len..], header)
+        .unwrap()
+}
 
 // nlmon capture of netlink packet sent by `sudo wg` command with netlink
 // header purged(generic netlink command is first byte).
@@ -195,4 +211,206 @@ fn test_amnezia_magic_headers() {
     assert!(buffer
         .windows(6)
         .any(|w| w == &[0x06, 0x00, 0x0c, 0x00, 0x66, 0x55]));
+}
+
+#[test]
+fn test_set_device_roundtrip() {
+    let msg = AmneziaWireguardMessage {
+        cmd: AmneziaWireguardCmd::SetDevice,
+        attributes: vec![
+            AmneziaWireguardAttribute::IfName("awg0".into()),
+            AmneziaWireguardAttribute::ListenPort(51820),
+            AmneziaWireguardAttribute::Fwmark(1234),
+            AmneziaWireguardAttribute::Flags(1),
+        ],
+    };
+
+    assert_eq!(msg, roundtrip_msg(msg.clone()));
+}
+
+#[test]
+fn test_all_amnezia_attributes_emit_and_roundtrip() {
+    let msg = AmneziaWireguardMessage {
+        cmd: AmneziaWireguardCmd::SetDevice,
+        attributes: vec![
+            AmneziaWireguardAttribute::JC(1),
+            AmneziaWireguardAttribute::Jmin(10),
+            AmneziaWireguardAttribute::Jmax(100),
+            AmneziaWireguardAttribute::S1(0x0102),
+            AmneziaWireguardAttribute::S2(0x0304),
+            AmneziaWireguardAttribute::S3(0x0506),
+            AmneziaWireguardAttribute::S4(0x0708),
+            AmneziaWireguardAttribute::H1(0x1111),
+            AmneziaWireguardAttribute::H2(0x2222),
+            AmneziaWireguardAttribute::H3(0x3333),
+            AmneziaWireguardAttribute::H4(0x4444),
+            AmneziaWireguardAttribute::I1(0xaaaa),
+            AmneziaWireguardAttribute::I2(0xbbbb),
+            AmneziaWireguardAttribute::I3(0xcccc),
+            AmneziaWireguardAttribute::I4(0xdddd),
+            AmneziaWireguardAttribute::I5(0xeeee),
+            AmneziaWireguardAttribute::DataInit(100),
+            AmneziaWireguardAttribute::DataResponse(200),
+            AmneziaWireguardAttribute::DataConfirm(300),
+            AmneziaWireguardAttribute::DataTransport(400),
+        ],
+    };
+
+    let parsed = roundtrip_msg(msg.clone());
+    assert_eq!(msg, parsed);
+}
+
+#[test]
+fn test_allowed_ips_ipv6_roundtrip() {
+    let msg = AmneziaWireguardMessage {
+        cmd: AmneziaWireguardCmd::SetDevice,
+        attributes: vec![AmneziaWireguardAttribute::Peers(vec![
+            AmneziaWireguardPeer(vec![
+                AmneziaWireguardPeerAttribute::PublicKey([42u8; 32]),
+                AmneziaWireguardPeerAttribute::AllowedIps(vec![
+                    AmneziaWireguardAllowedIp(vec![
+                        AmneziaWireguardAllowedIpAttr::Family(
+                            AmneziaWireguardAddressFamily::Ipv6,
+                        ),
+                        AmneziaWireguardAllowedIpAttr::IpAddr(IpAddr::V6(
+                            Ipv6Addr::UNSPECIFIED,
+                        )),
+                        AmneziaWireguardAllowedIpAttr::Cidr(0),
+                    ]),
+                ]),
+            ]),
+        ])],
+    };
+
+    assert_eq!(msg, roundtrip_msg(msg.clone()));
+}
+
+#[test]
+fn test_multiple_allowed_ips_per_peer() {
+    let msg = AmneziaWireguardMessage {
+        cmd: AmneziaWireguardCmd::SetDevice,
+        attributes: vec![AmneziaWireguardAttribute::Peers(vec![
+            AmneziaWireguardPeer(vec![
+                AmneziaWireguardPeerAttribute::PublicKey([7u8; 32]),
+                AmneziaWireguardPeerAttribute::AllowedIps(vec![
+                    AmneziaWireguardAllowedIp(vec![
+                        AmneziaWireguardAllowedIpAttr::Family(
+                            AmneziaWireguardAddressFamily::Ipv4,
+                        ),
+                        AmneziaWireguardAllowedIpAttr::IpAddr(IpAddr::V4(
+                            Ipv4Addr::new(10, 0, 0, 0),
+                        )),
+                        AmneziaWireguardAllowedIpAttr::Cidr(8),
+                    ]),
+                    AmneziaWireguardAllowedIp(vec![
+                        AmneziaWireguardAllowedIpAttr::Family(
+                            AmneziaWireguardAddressFamily::Ipv6,
+                        ),
+                        AmneziaWireguardAllowedIpAttr::IpAddr(IpAddr::V6(
+                            Ipv6Addr::new(0xfd00, 0, 0, 0, 0, 0, 0, 1),
+                        )),
+                        AmneziaWireguardAllowedIpAttr::Cidr(128),
+                    ]),
+                ]),
+            ]),
+        ])],
+    };
+
+    assert_eq!(msg, roundtrip_msg(msg.clone()));
+}
+
+#[test]
+fn test_peer_with_endpoint_keepalive_and_flags() {
+    let msg = AmneziaWireguardMessage {
+        cmd: AmneziaWireguardCmd::SetDevice,
+        attributes: vec![AmneziaWireguardAttribute::Peers(vec![
+            AmneziaWireguardPeer(vec![
+                AmneziaWireguardPeerAttribute::PublicKey([1u8; 32]),
+                AmneziaWireguardPeerAttribute::PresharedKey([2u8; 32]),
+                AmneziaWireguardPeerAttribute::Endpoint(SocketAddr::V6(
+                    SocketAddrV6::new(
+                        Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 1),
+                        51820,
+                        0,
+                        0,
+                    ),
+                )),
+                AmneziaWireguardPeerAttribute::PersistentKeepalive(25),
+                AmneziaWireguardPeerAttribute::Flags(
+                    crate::constants::WGPEER_F_REPLACE_ALLOWEDIPS,
+                ),
+            ]),
+        ])],
+    };
+
+    assert_eq!(msg, roundtrip_msg(msg.clone()));
+}
+
+#[test]
+fn test_empty_peers_roundtrip() {
+    let msg = AmneziaWireguardMessage {
+        cmd: AmneziaWireguardCmd::SetDevice,
+        attributes: vec![
+            AmneziaWireguardAttribute::IfName("awg0".into()),
+            AmneziaWireguardAttribute::Peers(vec![]),
+        ],
+    };
+
+    assert_eq!(msg, roundtrip_msg(msg.clone()));
+}
+
+#[test]
+fn test_full_device_config_roundtrip() {
+    let private_key: [u8; 32] = [
+        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+        20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
+    ];
+    let public_key: [u8; 32] = [
+        31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14,
+        13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0,
+    ];
+
+    let msg = AmneziaWireguardMessage {
+        cmd: AmneziaWireguardCmd::SetDevice,
+        attributes: vec![
+            AmneziaWireguardAttribute::IfIndex(5),
+            AmneziaWireguardAttribute::IfName("awg0".into()),
+            AmneziaWireguardAttribute::PrivateKey(private_key),
+            AmneziaWireguardAttribute::PublicKey(public_key),
+            AmneziaWireguardAttribute::ListenPort(51820),
+            AmneziaWireguardAttribute::Fwmark(0),
+            AmneziaWireguardAttribute::Flags(crate::constants::WGDEVICE_F_REPLACE_PEERS),
+            // Amnezia parameters
+            AmneziaWireguardAttribute::JC(4),
+            AmneziaWireguardAttribute::Jmin(40),
+            AmneziaWireguardAttribute::Jmax(70),
+            AmneziaWireguardAttribute::S1(0x1234),
+            AmneziaWireguardAttribute::S2(0x5678),
+            AmneziaWireguardAttribute::H1(0x9abc),
+            AmneziaWireguardAttribute::H2(0xdef0),
+            AmneziaWireguardAttribute::Peers(vec![
+                AmneziaWireguardPeer(vec![
+                    AmneziaWireguardPeerAttribute::PublicKey([0xabu8; 32]),
+                    AmneziaWireguardPeerAttribute::Endpoint(SocketAddr::new(
+                        IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1)),
+                        51820,
+                    )),
+                    AmneziaWireguardPeerAttribute::PersistentKeepalive(25),
+                    AmneziaWireguardPeerAttribute::AllowedIps(vec![
+                        AmneziaWireguardAllowedIp(vec![
+                            AmneziaWireguardAllowedIpAttr::Family(
+                                AmneziaWireguardAddressFamily::Ipv4,
+                            ),
+                            AmneziaWireguardAllowedIpAttr::IpAddr(IpAddr::V4(
+                                Ipv4Addr::new(0, 0, 0, 0),
+                            )),
+                            AmneziaWireguardAllowedIpAttr::Cidr(0),
+                        ]),
+                    ]),
+                ]),
+            ]),
+        ],
+    };
+
+    assert_eq!(msg, roundtrip_msg(msg.clone()));
 }

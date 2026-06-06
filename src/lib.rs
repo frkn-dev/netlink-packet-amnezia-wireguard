@@ -3,6 +3,8 @@
 //! The `netlink-packet-amnezia-wireguard` crate is designed for parsing and
 //! emitting generic netlink packets for Amnezia WireGuard interface.
 
+pub mod constants;
+
 mod allowedip;
 mod attribute;
 mod message;
