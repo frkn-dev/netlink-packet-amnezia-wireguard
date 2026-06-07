@@ -1,4 +1,31 @@
 # Changelog
+## [0.1.1] - 2026-06-06
+### Breaking changes
+ - Dropped generic `WgFamily` trait; the crate is now AmneziaWG-only.
+ - Renamed all public types from `Wireguard*` to `AmneziaWireguard*` to avoid
+   name collisions with the plain WireGuard crate.
+ - Merged `AmneziaWgAttribute` into `WireguardAttribute` (now the single
+   attribute enum containing both base and Amnezia-specific fields).
+ - Family name hard-coded to `"amneziawg"` and version to `2`.
+
+### New features
+ - Added AmneziaWG-specific attributes: `JC`, `Jmin`, `Jmax`, `S1`..`S4`,
+   `H1`..`H4`, `I1`..`I5`, `DataInit`, `DataResponse`, `DataConfirm`,
+   `DataTransport`.
+ - Exposed `pub mod constants` with kernel flags.
+ - Added 7 new unit tests and 3 integration tests for Linux.
+ - Added GitHub Actions CI with AmneziaWG kernel module.
+
+### Bug fixes
+ - Fixed clippy warnings (needless borrow, op_ref, await_holding_lock).
+
+## [0.1.0] - 2026-06-06
+### Breaking changes
+ - Forked from `netlink-packet-wireguard` to support AmneziaWG.
+
+### New features
+ - Generic netlink packet definitions for Amnezia WireGuard.
+
 ## [0.3.0] - 2026-01-26
 ### Breaking changes
  - Rewrite to align with netlink-packet-route code style. (3067a39)
