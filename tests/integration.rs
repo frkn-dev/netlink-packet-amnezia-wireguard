@@ -9,9 +9,9 @@
 
 #![cfg(target_os = "linux")]
 
-use std::{process::Command, sync::Mutex};
+use std::process::Command;
 
-use futures::StreamExt;
+use futures::{lock::Mutex, StreamExt};
 use genetlink::new_connection;
 use netlink_packet_amnezia_wireguard::{
     AmneziaWireguardAttribute, AmneziaWireguardCmd, AmneziaWireguardMessage,
@@ -95,7 +95,7 @@ async fn test_get_device_on_amneziawg_interface() {
         return;
     }
 
-    let _guard = TEST_MUTEX.lock().unwrap();
+    let _guard = TEST_MUTEX.lock().await;
 
     let (connection, mut handle, _) = new_connection().unwrap();
     tokio::spawn(connection);
@@ -138,7 +138,7 @@ async fn test_set_and_get_amnezia_parameters() {
         return;
     }
 
-    let _guard = TEST_MUTEX.lock().unwrap();
+    let _guard = TEST_MUTEX.lock().await;
 
     let (connection, mut handle, _) = new_connection().unwrap();
     tokio::spawn(connection);

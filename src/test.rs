@@ -180,14 +180,14 @@ fn test_amnezia_junk_parameters() {
     assert!(
         buffer
             .windows(6)
-            .any(|w| w == &[0x06, 0x00, 0x09, 0x00, 0x04, 0x00]),
+            .any(|w| w == [0x06, 0x00, 0x09, 0x00, 0x04, 0x00]),
         "JC failed"
     );
 
     assert!(
         buffer
             .windows(6)
-            .any(|w| w == &[0x06, 0x00, 0x0a, 0x00, 0x28, 0x00]),
+            .any(|w| w == [0x06, 0x00, 0x0a, 0x00, 0x28, 0x00]),
         "Jmin failed"
     );
 }
@@ -208,12 +208,12 @@ fn test_amnezia_magic_headers() {
     // H1 (type 14 / 0x0e, lenght 6): [06, 00, 0e, 00, 22, 11]
     assert!(buffer
         .windows(6)
-        .any(|w| w == &[0x06, 0x00, 0x0e, 0x00, 0x22, 0x11]));
+        .any(|w| w == [0x06, 0x00, 0x0e, 0x00, 0x22, 0x11]));
 
     // S1 (type 12 / 0x0c, length 6): [06, 00, 0c, 00, 66, 55]
     assert!(buffer
         .windows(6)
-        .any(|w| w == &[0x06, 0x00, 0x0c, 0x00, 0x66, 0x55]));
+        .any(|w| w == [0x06, 0x00, 0x0c, 0x00, 0x66, 0x55]));
 }
 
 #[test]

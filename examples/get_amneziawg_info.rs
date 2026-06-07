@@ -71,7 +71,7 @@ fn print_wg_payload(wg: AmneziaWireguardMessage) {
             AmneziaWireguardAttribute::Peers(peers) => {
                 for peer in peers {
                     println!("Peer: ");
-                    print_wg_peer(&peer);
+                    print_wg_peer(peer);
                 }
             }
             AmneziaWireguardAttribute::JC(v) => {
@@ -114,7 +114,7 @@ fn print_wg_peer(attrs: &[AmneziaWireguardPeerAttribute]) {
             }
             AmneziaWireguardPeerAttribute::AllowedIps(ips) => {
                 for ip in ips {
-                    print_wg_allowedip(&ip);
+                    print_wg_allowedip(ip);
                 }
             }
             _ => (),
