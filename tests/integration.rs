@@ -9,7 +9,11 @@
 
 #![cfg(target_os = "linux")]
 
-use std::{net::{IpAddr, Ipv4Addr}, process::Command};
+use std::{
+    net::{IpAddr, Ipv4Addr},
+    process::Command,
+    sync::Mutex,
+};
 
 use futures::StreamExt;
 use genetlink::new_connection;
@@ -24,7 +28,8 @@ use netlink_packet_amnezia_wireguard::{
     AmneziaWireguardPeerAttribute,
 };
 
-const TEST_IFNAME: &str = "awg_test0";
+/// Serializes access to netlink interface creation/deletion across tests.
+static TEST_MUTEX: Mutex<()> = Mutex::new(());
 
 fn is_root() -> bool {
     unsafe { libc::geteuid() == 0 }
@@ -43,14 +48,17 @@ fn run_ip(args: &[&str]) -> Result<(), String> {
     }
 }
 
-fn create_interface(name: &str) -> Result<(), String> {
-    // Best-effort cleanup of a previous stale interface.
+fn delete_interface(name: &str) {
     let _ = run_ip(&["link", "del", name]);
+}
+
+fn create_interface(name: &str) -> Result<(), String> {
+    delete_interface(name);
     run_ip(&["link", "add", name, "type", "amneziawg"])
 }
 
-fn delete_interface(name: &str) {
-    let _ = run_ip(&["link", "del", name]);
+fn unique_ifname(prefix: &str) -> String {
+    format!("{}_{}", prefix, std::process::id())
 }
 
 async fn family_available(handle: &mut genetlink::GenetlinkHandle) -> bool {
@@ -94,6 +102,8 @@ async fn test_get_device_on_amneziawg_interface() {
         return;
     }
 
+    let _guard = TEST_MUTEX.lock().unwrap();
+
     let (connection, mut handle, _) = new_connection().unwrap();
     tokio::spawn(connection);
 
@@ -102,13 +112,12 @@ async fn test_get_device_on_amneziawg_interface() {
         return;
     }
 
-    create_interface(TEST_IFNAME).expect("failed to create test interface");
+    let ifname = unique_ifname("awg_get");
+    create_interface(&ifname).expect("failed to create test interface");
 
     let get_msg = AmneziaWireguardMessage {
         cmd: AmneziaWireguardCmd::GetDevice,
-        attributes: vec![AmneziaWireguardAttribute::IfName(
-            TEST_IFNAME.into(),
-        )],
+        attributes: vec![AmneziaWireguardAttribute::IfName(ifname.clone())],
     };
 
     let responses = send_request(
@@ -125,12 +134,12 @@ async fn test_get_device_on_amneziawg_interface() {
 
     let found_name = responses.iter().any(|r| {
         r.attributes.iter().any(|attr| {
-            matches!(attr, AmneziaWireguardAttribute::IfName(n) if n == TEST_IFNAME)
+            matches!(attr, AmneziaWireguardAttribute::IfName(n) if *n == ifname)
         })
     });
     assert!(found_name, "expected IfName attribute in get response");
 
-    delete_interface(TEST_IFNAME);
+    delete_interface(&ifname);
 }
 
 #[tokio::test]
@@ -140,6 +149,8 @@ async fn test_set_and_get_amnezia_parameters() {
         return;
     }
 
+    let _guard = TEST_MUTEX.lock().unwrap();
+
     let (connection, mut handle, _) = new_connection().unwrap();
     tokio::spawn(connection);
 
@@ -148,12 +159,13 @@ async fn test_set_and_get_amnezia_parameters() {
         return;
     }
 
-    create_interface(TEST_IFNAME).expect("failed to create test interface");
+    let ifname = unique_ifname("awg_set");
+    create_interface(&ifname).expect("failed to create test interface");
 
     let set_msg = AmneziaWireguardMessage {
         cmd: AmneziaWireguardCmd::SetDevice,
         attributes: vec![
-            AmneziaWireguardAttribute::IfName(TEST_IFNAME.into()),
+            AmneziaWireguardAttribute::IfName(ifname.clone()),
             AmneziaWireguardAttribute::ListenPort(51820),
             AmneziaWireguardAttribute::Fwmark(1234),
             AmneziaWireguardAttribute::JC(4),
@@ -191,9 +203,7 @@ async fn test_set_and_get_amnezia_parameters() {
 
     let get_msg = AmneziaWireguardMessage {
         cmd: AmneziaWireguardCmd::GetDevice,
-        attributes: vec![AmneziaWireguardAttribute::IfName(
-            TEST_IFNAME.into(),
-        )],
+        attributes: vec![AmneziaWireguardAttribute::IfName(ifname.clone())],
     };
 
     let responses = send_request(
@@ -245,7 +255,7 @@ async fn test_set_and_get_amnezia_parameters() {
     });
     assert_eq!(jmax, Some(70), "Jmax mismatch");
 
-    delete_interface(TEST_IFNAME);
+    delete_interface(&ifname);
 }
 
 #[tokio::test]
