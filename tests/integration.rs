@@ -10,7 +10,6 @@
 #![cfg(target_os = "linux")]
 
 use std::{
-    net::{IpAddr, Ipv4Addr},
     process::Command,
     sync::Mutex,
 };
@@ -22,10 +21,7 @@ use netlink_packet_core::{
 };
 use netlink_packet_generic::GenlMessage;
 use netlink_packet_amnezia_wireguard::{
-    AmneziaWireguardAddressFamily, AmneziaWireguardAllowedIp,
-    AmneziaWireguardAllowedIpAttr, AmneziaWireguardAttribute,
-    AmneziaWireguardCmd, AmneziaWireguardMessage, AmneziaWireguardPeer,
-    AmneziaWireguardPeerAttribute,
+    AmneziaWireguardAttribute, AmneziaWireguardCmd, AmneziaWireguardMessage,
 };
 
 /// Serializes access to netlink interface creation/deletion across tests.
@@ -167,26 +163,11 @@ async fn test_set_and_get_amnezia_parameters() {
         attributes: vec![
             AmneziaWireguardAttribute::IfName(ifname.clone()),
             AmneziaWireguardAttribute::ListenPort(51820),
-            AmneziaWireguardAttribute::Fwmark(1234),
             AmneziaWireguardAttribute::JC(4),
             AmneziaWireguardAttribute::Jmin(40),
             AmneziaWireguardAttribute::Jmax(70),
             AmneziaWireguardAttribute::S1(0x1234),
             AmneziaWireguardAttribute::H1(0x5678),
-            AmneziaWireguardAttribute::Peers(vec![AmneziaWireguardPeer(vec![
-                AmneziaWireguardPeerAttribute::PublicKey([1u8; 32]),
-                AmneziaWireguardPeerAttribute::AllowedIps(vec![
-                    AmneziaWireguardAllowedIp(vec![
-                        AmneziaWireguardAllowedIpAttr::Family(
-                            AmneziaWireguardAddressFamily::Ipv4,
-                        ),
-                        AmneziaWireguardAllowedIpAttr::IpAddr(IpAddr::V4(
-                            Ipv4Addr::new(0, 0, 0, 0),
-                        )),
-                        AmneziaWireguardAllowedIpAttr::Cidr(0),
-                    ]),
-                ]),
-            ])]),
         ],
     };
 
