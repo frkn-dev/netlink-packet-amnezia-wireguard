@@ -158,13 +158,15 @@ async fn test_set_and_get_amnezia_parameters() {
     let ifname = unique_ifname("awg_set");
     create_interface(&ifname).expect("failed to create test interface");
 
-    // Minimal SetDevice to verify the kernel accepts the request.
-    // We add parameters one by one once this baseline passes.
+    // Baseline SetDevice + core Amnezia junk parameters.
     let set_msg = AmneziaWireguardMessage {
         cmd: AmneziaWireguardCmd::SetDevice,
         attributes: vec![
             AmneziaWireguardAttribute::IfName(ifname.clone()),
             AmneziaWireguardAttribute::ListenPort(51820),
+            AmneziaWireguardAttribute::JC(4),
+            AmneziaWireguardAttribute::Jmin(40),
+            AmneziaWireguardAttribute::Jmax(70),
         ],
     };
 
@@ -205,6 +207,33 @@ async fn test_set_and_get_amnezia_parameters() {
         }
     });
     assert_eq!(listen_port, Some(51820), "listen port mismatch");
+
+    let jc = attrs.iter().find_map(|a| {
+        if let AmneziaWireguardAttribute::JC(v) = a {
+            Some(*v)
+        } else {
+            None
+        }
+    });
+    assert_eq!(jc, Some(4), "JC mismatch");
+
+    let jmin = attrs.iter().find_map(|a| {
+        if let AmneziaWireguardAttribute::Jmin(v) = a {
+            Some(*v)
+        } else {
+            None
+        }
+    });
+    assert_eq!(jmin, Some(40), "Jmin mismatch");
+
+    let jmax = attrs.iter().find_map(|a| {
+        if let AmneziaWireguardAttribute::Jmax(v) = a {
+            Some(*v)
+        } else {
+            None
+        }
+    });
+    assert_eq!(jmax, Some(70), "Jmax mismatch");
 
     delete_interface(&ifname);
 }
