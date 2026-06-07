@@ -11,7 +11,9 @@ const WGALLOWEDIP_A_FAMILY: u16 = 1;
 const WGALLOWEDIP_A_IPADDR: u16 = 2;
 const WGALLOWEDIP_A_CIDR_MASK: u16 = 3;
 
-pub(crate) struct AmneziaWireguardAllowedIps(pub(crate) Vec<AmneziaWireguardAllowedIp>);
+pub(crate) struct AmneziaWireguardAllowedIps(
+    pub(crate) Vec<AmneziaWireguardAllowedIp>,
+);
 
 impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>>
     for AmneziaWireguardAllowedIps

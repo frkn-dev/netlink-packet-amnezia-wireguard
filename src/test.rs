@@ -16,9 +16,7 @@ use crate::{
     AmneziaWireguardPeerAttribute, AmneziaWireguardTimeSpec,
 };
 
-fn roundtrip_msg(
-    msg: AmneziaWireguardMessage,
-) -> AmneziaWireguardMessage {
+fn roundtrip_msg(msg: AmneziaWireguardMessage) -> AmneziaWireguardMessage {
     let header = GenlHeader {
         cmd: msg.cmd.into(),
         version: 2,
@@ -48,8 +46,7 @@ fn test_query_request() {
 
     assert_eq!(
         expected,
-        AmneziaWireguardMessage::parse_with_param(&raw[4..], header)
-            .unwrap(),
+        AmneziaWireguardMessage::parse_with_param(&raw[4..], header).unwrap(),
     );
     let mut buffer = vec![0; expected.buffer_len() + header.buffer_len()];
     header.emit(&mut buffer);
@@ -115,10 +112,12 @@ fn test_query_reply() {
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             ]),
-            AmneziaWireguardPeerAttribute::LastHandshake(AmneziaWireguardTimeSpec {
-                seconds: 1769415834,
-                nano_seconds: 262671874,
-            }),
+            AmneziaWireguardPeerAttribute::LastHandshake(
+                AmneziaWireguardTimeSpec {
+                    seconds: 1769415834,
+                    nano_seconds: 262671874,
+                },
+            ),
             AmneziaWireguardPeerAttribute::PersistentKeepalive(25),
             AmneziaWireguardPeerAttribute::TxBytes(1917056),
             AmneziaWireguardPeerAttribute::RxBytes(30426264),
@@ -126,13 +125,17 @@ fn test_query_reply() {
             AmneziaWireguardPeerAttribute::Endpoint(
                 std::net::SocketAddr::from_str("1.1.1.1:1111").unwrap(),
             ),
-            AmneziaWireguardPeerAttribute::AllowedIps(vec![AmneziaWireguardAllowedIp(vec![
-                AmneziaWireguardAllowedIpAttr::Cidr(0),
-                AmneziaWireguardAllowedIpAttr::Family(AmneziaWireguardAddressFamily::Ipv4),
-                AmneziaWireguardAllowedIpAttr::IpAddr(IpAddr::V4(
-                    Ipv4Addr::UNSPECIFIED,
-                )),
-            ])]),
+            AmneziaWireguardPeerAttribute::AllowedIps(vec![
+                AmneziaWireguardAllowedIp(vec![
+                    AmneziaWireguardAllowedIpAttr::Cidr(0),
+                    AmneziaWireguardAllowedIpAttr::Family(
+                        AmneziaWireguardAddressFamily::Ipv4,
+                    ),
+                    AmneziaWireguardAllowedIpAttr::IpAddr(IpAddr::V4(
+                        Ipv4Addr::UNSPECIFIED,
+                    )),
+                ]),
+            ]),
         ])]),
     ];
 
@@ -379,7 +382,9 @@ fn test_full_device_config_roundtrip() {
             AmneziaWireguardAttribute::PublicKey(public_key),
             AmneziaWireguardAttribute::ListenPort(51820),
             AmneziaWireguardAttribute::Fwmark(0),
-            AmneziaWireguardAttribute::Flags(crate::constants::WGDEVICE_F_REPLACE_PEERS),
+            AmneziaWireguardAttribute::Flags(
+                crate::constants::WGDEVICE_F_REPLACE_PEERS,
+            ),
             // Amnezia parameters
             AmneziaWireguardAttribute::JC(4),
             AmneziaWireguardAttribute::Jmin(40),
@@ -388,27 +393,25 @@ fn test_full_device_config_roundtrip() {
             AmneziaWireguardAttribute::S2(0x5678),
             AmneziaWireguardAttribute::H1(0x9abc),
             AmneziaWireguardAttribute::H2(0xdef0),
-            AmneziaWireguardAttribute::Peers(vec![
-                AmneziaWireguardPeer(vec![
-                    AmneziaWireguardPeerAttribute::PublicKey([0xabu8; 32]),
-                    AmneziaWireguardPeerAttribute::Endpoint(SocketAddr::new(
-                        IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1)),
-                        51820,
-                    )),
-                    AmneziaWireguardPeerAttribute::PersistentKeepalive(25),
-                    AmneziaWireguardPeerAttribute::AllowedIps(vec![
-                        AmneziaWireguardAllowedIp(vec![
-                            AmneziaWireguardAllowedIpAttr::Family(
-                                AmneziaWireguardAddressFamily::Ipv4,
-                            ),
-                            AmneziaWireguardAllowedIpAttr::IpAddr(IpAddr::V4(
-                                Ipv4Addr::new(0, 0, 0, 0),
-                            )),
-                            AmneziaWireguardAllowedIpAttr::Cidr(0),
-                        ]),
+            AmneziaWireguardAttribute::Peers(vec![AmneziaWireguardPeer(vec![
+                AmneziaWireguardPeerAttribute::PublicKey([0xabu8; 32]),
+                AmneziaWireguardPeerAttribute::Endpoint(SocketAddr::new(
+                    IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1)),
+                    51820,
+                )),
+                AmneziaWireguardPeerAttribute::PersistentKeepalive(25),
+                AmneziaWireguardPeerAttribute::AllowedIps(vec![
+                    AmneziaWireguardAllowedIp(vec![
+                        AmneziaWireguardAllowedIpAttr::Family(
+                            AmneziaWireguardAddressFamily::Ipv4,
+                        ),
+                        AmneziaWireguardAllowedIpAttr::IpAddr(IpAddr::V4(
+                            Ipv4Addr::new(0, 0, 0, 0),
+                        )),
+                        AmneziaWireguardAllowedIpAttr::Cidr(0),
                     ]),
                 ]),
-            ]),
+            ])]),
         ],
     };
 

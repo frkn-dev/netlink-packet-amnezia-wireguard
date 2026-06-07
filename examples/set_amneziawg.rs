@@ -8,15 +8,16 @@ use std::{
 
 use futures::StreamExt;
 use genetlink::new_connection;
+use netlink_packet_amnezia_wireguard::{
+    AmneziaWireguardAddressFamily, AmneziaWireguardAllowedIp,
+    AmneziaWireguardAllowedIpAttr, AmneziaWireguardAttribute,
+    AmneziaWireguardCmd, AmneziaWireguardMessage, AmneziaWireguardPeer,
+    AmneziaWireguardPeerAttribute,
+};
 use netlink_packet_core::{
     NetlinkMessage, NetlinkPayload, NLM_F_ACK, NLM_F_REQUEST,
 };
 use netlink_packet_generic::GenlMessage;
-use netlink_packet_amnezia_wireguard::{
-    AmneziaWireguardAddressFamily, AmneziaWireguardAllowedIp, AmneziaWireguardAllowedIpAttr,
-    AmneziaWireguardAttribute, AmneziaWireguardCmd, AmneziaWireguardMessage, AmneziaWireguardPeer,
-    AmneziaWireguardPeerAttribute,
-};
 
 #[tokio::main]
 async fn main() {
@@ -64,7 +65,9 @@ async fn main() {
                     AmneziaWireguardAllowedIpAttr::Family(
                         AmneziaWireguardAddressFamily::Ipv4,
                     ),
-                    AmneziaWireguardAllowedIpAttr::IpAddr("0.0.0.0".parse().unwrap()),
+                    AmneziaWireguardAllowedIpAttr::IpAddr(
+                        "0.0.0.0".parse().unwrap(),
+                    ),
                     AmneziaWireguardAllowedIpAttr::Cidr(0),
                 ]),
                 AmneziaWireguardAllowedIp(vec![
@@ -72,7 +75,9 @@ async fn main() {
                     AmneziaWireguardAllowedIpAttr::Family(
                         AmneziaWireguardAddressFamily::Ipv6,
                     ),
-                    AmneziaWireguardAllowedIpAttr::IpAddr("::".parse().unwrap()),
+                    AmneziaWireguardAllowedIpAttr::IpAddr(
+                        "::".parse().unwrap(),
+                    ),
                     AmneziaWireguardAllowedIpAttr::Cidr(0),
                 ]),
             ]),
@@ -84,7 +89,8 @@ async fn main() {
         attributes,
     };
 
-    let genlmsg: GenlMessage<AmneziaWireguardMessage> = GenlMessage::from_payload(msg);
+    let genlmsg: GenlMessage<AmneziaWireguardMessage> =
+        GenlMessage::from_payload(msg);
 
     let mut nlmsg = NetlinkMessage::from(genlmsg);
     nlmsg.header.flags = NLM_F_REQUEST | NLM_F_ACK;

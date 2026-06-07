@@ -4,14 +4,15 @@ use std::env::args;
 
 use futures::StreamExt;
 use genetlink::new_connection;
+use netlink_packet_amnezia_wireguard::{
+    AmneziaWireguardAllowedIp, AmneziaWireguardAllowedIpAttr,
+    AmneziaWireguardAttribute, AmneziaWireguardCmd, AmneziaWireguardMessage,
+    AmneziaWireguardPeerAttribute,
+};
 use netlink_packet_core::{
     NetlinkMessage, NetlinkPayload, NLM_F_DUMP, NLM_F_REQUEST,
 };
 use netlink_packet_generic::GenlMessage;
-use netlink_packet_amnezia_wireguard::{
-    AmneziaWireguardAllowedIp, AmneziaWireguardAllowedIpAttr, AmneziaWireguardAttribute,
-    AmneziaWireguardCmd, AmneziaWireguardMessage, AmneziaWireguardPeerAttribute,
-};
 
 #[tokio::main]
 async fn main() {
@@ -31,7 +32,8 @@ async fn main() {
         attributes: vec![AmneziaWireguardAttribute::IfName(argv[1].clone())],
     };
 
-    let genlmsg: GenlMessage<AmneziaWireguardMessage> = GenlMessage::from_payload(msg);
+    let genlmsg: GenlMessage<AmneziaWireguardMessage> =
+        GenlMessage::from_payload(msg);
     let mut nlmsg = NetlinkMessage::from(genlmsg);
     nlmsg.header.flags = NLM_F_REQUEST | NLM_F_DUMP;
 
@@ -104,8 +106,12 @@ fn print_wg_peer(attrs: &[AmneziaWireguardPeerAttribute]) {
             AmneziaWireguardPeerAttribute::LastHandshake(v) => {
                 println!("  LastHandshake: {:?}", v)
             }
-            AmneziaWireguardPeerAttribute::RxBytes(v) => println!("  RxBytes: {}", v),
-            AmneziaWireguardPeerAttribute::TxBytes(v) => println!("  TxBytes: {}", v),
+            AmneziaWireguardPeerAttribute::RxBytes(v) => {
+                println!("  RxBytes: {}", v)
+            }
+            AmneziaWireguardPeerAttribute::TxBytes(v) => {
+                println!("  TxBytes: {}", v)
+            }
             AmneziaWireguardPeerAttribute::AllowedIps(ips) => {
                 for ip in ips {
                     print_wg_allowedip(&ip);

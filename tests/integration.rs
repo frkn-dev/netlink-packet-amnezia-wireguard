@@ -9,20 +9,17 @@
 
 #![cfg(target_os = "linux")]
 
-use std::{
-    process::Command,
-    sync::Mutex,
-};
+use std::{process::Command, sync::Mutex};
 
 use futures::StreamExt;
 use genetlink::new_connection;
+use netlink_packet_amnezia_wireguard::{
+    AmneziaWireguardAttribute, AmneziaWireguardCmd, AmneziaWireguardMessage,
+};
 use netlink_packet_core::{
     NetlinkMessage, NetlinkPayload, NLM_F_ACK, NLM_F_DUMP, NLM_F_REQUEST,
 };
 use netlink_packet_generic::GenlMessage;
-use netlink_packet_amnezia_wireguard::{
-    AmneziaWireguardAttribute, AmneziaWireguardCmd, AmneziaWireguardMessage,
-};
 
 /// Serializes access to netlink interface creation/deletion across tests.
 static TEST_MUTEX: Mutex<()> = Mutex::new(());
@@ -116,12 +113,8 @@ async fn test_get_device_on_amneziawg_interface() {
         attributes: vec![AmneziaWireguardAttribute::IfName(ifname.clone())],
     };
 
-    let responses = send_request(
-        &mut handle,
-        get_msg,
-        NLM_F_REQUEST | NLM_F_DUMP,
-    )
-    .await;
+    let responses =
+        send_request(&mut handle, get_msg, NLM_F_REQUEST | NLM_F_DUMP).await;
 
     assert!(
         !responses.is_empty(),
@@ -170,12 +163,8 @@ async fn test_set_and_get_amnezia_parameters() {
         ],
     };
 
-    let ack_responses = send_request(
-        &mut handle,
-        set_msg,
-        NLM_F_REQUEST | NLM_F_ACK,
-    )
-    .await;
+    let ack_responses =
+        send_request(&mut handle, set_msg, NLM_F_REQUEST | NLM_F_ACK).await;
     assert!(
         ack_responses.is_empty(),
         "set device with NLM_F_ACK should return no payload on success"
@@ -186,12 +175,8 @@ async fn test_set_and_get_amnezia_parameters() {
         attributes: vec![AmneziaWireguardAttribute::IfName(ifname.clone())],
     };
 
-    let responses = send_request(
-        &mut handle,
-        get_msg,
-        NLM_F_REQUEST | NLM_F_DUMP,
-    )
-    .await;
+    let responses =
+        send_request(&mut handle, get_msg, NLM_F_REQUEST | NLM_F_DUMP).await;
     assert_eq!(
         responses.len(),
         1,

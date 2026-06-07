@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 use netlink_packet_core::{
-    DecodeError, Emitable, NlasIterator, Parseable,
-    ParseableParametrized,
+    DecodeError, Emitable, NlasIterator, Parseable, ParseableParametrized,
 };
 use netlink_packet_generic::{GenlFamily, GenlHeader};
 
@@ -108,7 +107,9 @@ impl ParseableParametrized<[u8], GenlHeader> for AmneziaWireguardMessage {
    ATTRIBUTE PARSER
 ========================= */
 
-fn parse_attributes(buf: &[u8]) -> Result<Vec<AmneziaWireguardAttribute>, DecodeError> {
+fn parse_attributes(
+    buf: &[u8],
+) -> Result<Vec<AmneziaWireguardAttribute>, DecodeError> {
     let mut attrs = Vec::new();
 
     for nla in NlasIterator::new(buf) {

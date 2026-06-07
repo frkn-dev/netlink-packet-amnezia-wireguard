@@ -233,7 +233,9 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>>
                 parse_u32(payload)
                     .context("invalid WGDEVICE_A_FWMARK value")?,
             ),
-            WGDEVICE_A_PEERS => Self::Peers(AmneziaWireguardPeers::parse(buf)?.0),
+            WGDEVICE_A_PEERS => {
+                Self::Peers(AmneziaWireguardPeers::parse(buf)?.0)
+            }
             WGDEVICE_A_FLAGS => Self::Flags(
                 parse_u32(payload).context("invalid WGDEVICE_A_FLAGS value")?,
             ),

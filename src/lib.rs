@@ -16,9 +16,13 @@ mod test;
 
 pub use self::{
     allowedip::{
-        AmneziaWireguardAddressFamily, AmneziaWireguardAllowedIp, AmneziaWireguardAllowedIpAttr,
+        AmneziaWireguardAddressFamily, AmneziaWireguardAllowedIp,
+        AmneziaWireguardAllowedIpAttr,
     },
     attribute::AmneziaWireguardAttribute,
     message::{AmneziaWireguardCmd, AmneziaWireguardMessage},
-    peer::{AmneziaWireguardPeer, AmneziaWireguardPeerAttribute, AmneziaWireguardTimeSpec},
+    peer::{
+        AmneziaWireguardPeer, AmneziaWireguardPeerAttribute,
+        AmneziaWireguardTimeSpec,
+    },
 };
