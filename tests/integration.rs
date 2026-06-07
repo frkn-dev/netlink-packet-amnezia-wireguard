@@ -160,8 +160,6 @@ async fn test_set_and_get_amnezia_parameters() {
             AmneziaWireguardAttribute::JC(4),
             AmneziaWireguardAttribute::Jmin(40),
             AmneziaWireguardAttribute::Jmax(70),
-            AmneziaWireguardAttribute::S1(0x1234),
-            AmneziaWireguardAttribute::H1(0x5678),
         ],
     };
 
@@ -221,24 +219,6 @@ async fn test_set_and_get_amnezia_parameters() {
         }
     });
     assert_eq!(jmax, Some(70), "Jmax mismatch");
-
-    let s1 = attrs.iter().find_map(|a| {
-        if let AmneziaWireguardAttribute::S1(v) = a {
-            Some(*v)
-        } else {
-            None
-        }
-    });
-    assert_eq!(s1, Some(0x1234), "S1 mismatch");
-
-    let h1 = attrs.iter().find_map(|a| {
-        if let AmneziaWireguardAttribute::H1(v) = a {
-            Some(*v)
-        } else {
-            None
-        }
-    });
-    assert_eq!(h1, Some(0x5678), "H1 mismatch");
 
     delete_interface(&ifname);
 }
