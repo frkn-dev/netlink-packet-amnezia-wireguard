@@ -165,9 +165,9 @@ async fn test_set_and_get_amnezia_parameters() {
             AmneziaWireguardAttribute::S3(44),
             AmneziaWireguardAttribute::S4(9),
             AmneziaWireguardAttribute::H1("61220074".into()),
-            AmneziaWireguardAttribute::H2("6050999999".into()),
-            AmneziaWireguardAttribute::H3("1814368000".into()),
-            AmneziaWireguardAttribute::H4("1951944444".into()),
+            AmneziaWireguardAttribute::H2("2351746464".into()),
+            AmneziaWireguardAttribute::H3("3053333659".into()),
+            AmneziaWireguardAttribute::H4("1789444460".into()),
         ],
     };
 
