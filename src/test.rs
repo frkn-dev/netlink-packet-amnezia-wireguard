@@ -197,18 +197,18 @@ fn test_amnezia_magic_headers() {
     let msg: AmneziaWireguardMessage = AmneziaWireguardMessage {
         cmd: AmneziaWireguardCmd::SetDevice,
         attributes: vec![
-            AmneziaWireguardAttribute::H1(0x1122), // u16
-            AmneziaWireguardAttribute::S1(0x5566), // u16
+            AmneziaWireguardAttribute::H1("61220074".into()),
+            AmneziaWireguardAttribute::S1(0x5566),
         ],
     };
 
     let mut buffer = vec![0; msg.buffer_len()];
     msg.emit(&mut buffer);
 
-    // H1 (type 14 / 0x0e, lenght 6): [06, 00, 0e, 00, 22, 11]
+    // H1 (type 14 / 0x0e): string "61220074" + null, total attr len = 13
     assert!(buffer
-        .windows(6)
-        .any(|w| w == [0x06, 0x00, 0x0e, 0x00, 0x22, 0x11]));
+        .windows(13)
+        .any(|w| w == b"\x0d\x00\x0e\x0061220074\x00"));
 
     // S1 (type 12 / 0x0c, length 6): [06, 00, 0c, 00, 66, 55]
     assert!(buffer
@@ -243,19 +243,15 @@ fn test_all_amnezia_attributes_emit_and_roundtrip() {
             AmneziaWireguardAttribute::S2(0x0304),
             AmneziaWireguardAttribute::S3(0x0506),
             AmneziaWireguardAttribute::S4(0x0708),
-            AmneziaWireguardAttribute::H1(0x1111),
-            AmneziaWireguardAttribute::H2(0x2222),
-            AmneziaWireguardAttribute::H3(0x3333),
-            AmneziaWireguardAttribute::H4(0x4444),
-            AmneziaWireguardAttribute::I1(0xaaaa),
-            AmneziaWireguardAttribute::I2(0xbbbb),
-            AmneziaWireguardAttribute::I3(0xcccc),
-            AmneziaWireguardAttribute::I4(0xdddd),
-            AmneziaWireguardAttribute::I5(0xeeee),
-            AmneziaWireguardAttribute::DataInit(100),
-            AmneziaWireguardAttribute::DataResponse(200),
-            AmneziaWireguardAttribute::DataConfirm(300),
-            AmneziaWireguardAttribute::DataTransport(400),
+            AmneziaWireguardAttribute::H1("61220074".into()),
+            AmneziaWireguardAttribute::H2("2351746464".into()),
+            AmneziaWireguardAttribute::H3("3053333659".into()),
+            AmneziaWireguardAttribute::H4("1789444460".into()),
+            AmneziaWireguardAttribute::I1("<r 2>".into()),
+            AmneziaWireguardAttribute::I2("".into()),
+            AmneziaWireguardAttribute::I3("".into()),
+            AmneziaWireguardAttribute::I4("".into()),
+            AmneziaWireguardAttribute::I5("".into()),
         ],
     };
 
@@ -391,8 +387,8 @@ fn test_full_device_config_roundtrip() {
             AmneziaWireguardAttribute::Jmax(70),
             AmneziaWireguardAttribute::S1(0x1234),
             AmneziaWireguardAttribute::S2(0x5678),
-            AmneziaWireguardAttribute::H1(0x9abc),
-            AmneziaWireguardAttribute::H2(0xdef0),
+            AmneziaWireguardAttribute::H1("61220074".into()),
+            AmneziaWireguardAttribute::H2("6050999999".into()),
             AmneziaWireguardAttribute::Peers(vec![AmneziaWireguardPeer(vec![
                 AmneziaWireguardPeerAttribute::PublicKey([0xabu8; 32]),
                 AmneziaWireguardPeerAttribute::Endpoint(SocketAddr::new(

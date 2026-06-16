@@ -1,4 +1,14 @@
 # Changelog
+## [0.1.2] - 2026-06-06
+### Breaking changes
+ - Changed `H1`..`H4` and `I1`..`I5` attribute types from `u16` to `String`
+   to match the AmneziaWG kernel module (`NLA_NUL_STRING`).
+ - Removed unsupported `DataInit`, `DataResponse`, `DataConfirm`, and
+   `DataTransport` attributes (they are not present in the kernel module).
+
+### Bug fixes
+ - `SetDevice` with magic header specs no longer returns `EINVAL`.
+
 ## [0.1.1] - 2026-06-06
 ### Breaking changes
  - Dropped generic `WgFamily` trait; the crate is now AmneziaWG-only.

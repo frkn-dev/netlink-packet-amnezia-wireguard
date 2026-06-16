@@ -62,7 +62,7 @@ let msg = AmneziaWireguardMessage {
         AmneziaWireguardAttribute::Jmin(40),
         AmneziaWireguardAttribute::Jmax(70),
         AmneziaWireguardAttribute::S1(0x5566),
-        AmneziaWireguardAttribute::H1(0x1122),
+        AmneziaWireguardAttribute::H1("61220074".into()),
         AmneziaWireguardAttribute::Peers(vec![
             AmneziaWireguardPeer(vec![
                 AmneziaWireguardPeerAttribute::PublicKey(peer_pub_key),
@@ -103,13 +103,9 @@ In addition to standard WireGuard attributes (`PrivateKey`, `PublicKey`, `Peers`
 | `JC` | Junk packet count |
 | `Jmin` | Junk packet minimum size |
 | `Jmax` | Junk packet maximum size |
-| `S1` … `S4` | Magic header values |
-| `H1` … `H4` | Magic header values |
-| `I1` … `I5` | Intermediate header values |
-| `DataInit` (`DI`) | Data init packet size |
-| `DataResponse` (`DR`) | Data response packet size |
-| `DataConfirm` (`DC`) | Data confirm packet size |
-| `DataTransport` (`DT`) | Data transport packet size |
+| `S1` … `S4` | Junk packet sizes (`u16`) |
+| `H1` … `H4` | Magic header specs (`String`, e.g. `"61220074"` or `"684141592-1751861769"`) |
+| `I1` … `I5` | Intermediate header descriptors (`String`)|
 
 ## License
 

@@ -40,10 +40,6 @@ const WGDEVICE_A_I2: u16 = 22;
 const WGDEVICE_A_I3: u16 = 23;
 const WGDEVICE_A_I4: u16 = 24;
 const WGDEVICE_A_I5: u16 = 25;
-const WGDEVICE_A_DI: u16 = 26;
-const WGDEVICE_A_DR: u16 = 27;
-const WGDEVICE_A_DC: u16 = 28;
-const WGDEVICE_A_DT: u16 = 29;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
@@ -58,26 +54,24 @@ pub enum AmneziaWireguardAttribute {
     Flags(u32),
     // Amnezia attributes
     Peer(AmneziaWireguardPeer),
-    JC(u16),   //JunkCount
-    Jmin(u16), //JunkPacketMinSize
-    Jmax(u16), //JunkPacketMaxSize
+    JC(u16),   // JunkCount
+    Jmin(u16), // JunkPacketMinSize
+    Jmax(u16), // JunkPacketMaxSize
     S1(u16),
     S2(u16),
-    H1(u16),
-    H2(u16),
-    H3(u16),
-    H4(u16),
+    /// Magic header spec, e.g. `"61220074"` or `"684141592-1751861769"`.
+    H1(String),
+    H2(String),
+    H3(String),
+    H4(String),
     S3(u16),
     S4(u16),
-    I1(u16),
-    I2(u16),
-    I3(u16),
-    I4(u16),
-    I5(u16),
-    DataInit(u16),      // DI
-    DataResponse(u16),  // DR
-    DataConfirm(u16),   // DC
-    DataTransport(u16), // DT
+    /// Intermediate header descriptor string.
+    I1(String),
+    I2(String),
+    I3(String),
+    I4(String),
+    I5(String),
     Other(DefaultNla),
 }
 
@@ -88,33 +82,29 @@ impl AmneziaWireguardAttribute {
 impl Nla for AmneziaWireguardAttribute {
     fn value_len(&self) -> usize {
         match self {
-            Self::IfName(v) => v.len() + 1,
+            Self::IfName(v)
+            | Self::H1(v)
+            | Self::H2(v)
+            | Self::H3(v)
+            | Self::H4(v)
+            | Self::I1(v)
+            | Self::I2(v)
+            | Self::I3(v)
+            | Self::I4(v)
+            | Self::I5(v) => v.len() + 1,
             Self::PrivateKey(_) | Self::PublicKey(_) => WG_KEY_LEN,
             Self::ListenPort(_) => 2,
             Self::Peers(v) => v.as_slice().buffer_len(),
             Self::Fwmark(_) | Self::IfIndex(_) | Self::Flags(_) => 4,
-            //Amnezia Specific Fields
+            // Amnezia Specific Fields
             Self::Peer(v) => v.buffer_len(),
             Self::JC(_)
             | Self::Jmax(_)
             | Self::Jmin(_)
             | Self::S1(_)
             | Self::S2(_)
-            | Self::H1(_)
-            | Self::H2(_)
-            | Self::H3(_)
-            | Self::H4(_)
             | Self::S3(_)
-            | Self::S4(_)
-            | Self::I1(_)
-            | Self::I2(_)
-            | Self::I3(_)
-            | Self::I4(_)
-            | Self::I5(_)
-            | Self::DataInit(_)
-            | Self::DataResponse(_)
-            | Self::DataConfirm(_)
-            | Self::DataTransport(_) => 2,
+            | Self::S4(_) => 2,
             Self::Other(v) => v.value_len(),
         }
     }
@@ -147,10 +137,6 @@ impl Nla for AmneziaWireguardAttribute {
             Self::I3(_) => WGDEVICE_A_I3,
             Self::I4(_) => WGDEVICE_A_I4,
             Self::I5(_) => WGDEVICE_A_I5,
-            Self::DataInit(_) => WGDEVICE_A_DI,
-            Self::DataResponse(_) => WGDEVICE_A_DR,
-            Self::DataConfirm(_) => WGDEVICE_A_DC,
-            Self::DataTransport(_) => WGDEVICE_A_DT,
             Self::Other(attr) => attr.kind(),
         }
     }
@@ -158,7 +144,16 @@ impl Nla for AmneziaWireguardAttribute {
     fn emit_value(&self, buffer: &mut [u8]) {
         match self {
             Self::IfIndex(v) => emit_u32(buffer, *v).unwrap(),
-            Self::IfName(s) => {
+            Self::IfName(s)
+            | Self::H1(s)
+            | Self::H2(s)
+            | Self::H3(s)
+            | Self::H4(s)
+            | Self::I1(s)
+            | Self::I2(s)
+            | Self::I3(s)
+            | Self::I4(s)
+            | Self::I5(s) => {
                 buffer[..s.len()].copy_from_slice(s.as_bytes());
                 buffer[s.len()] = 0;
             }
@@ -168,28 +163,15 @@ impl Nla for AmneziaWireguardAttribute {
             Self::Fwmark(v) => emit_u32(buffer, *v).unwrap(),
             Self::Peers(v) => v.as_slice().emit(buffer),
             Self::Flags(v) => emit_u32(buffer, *v).unwrap(),
-            // Amnezia Specifi
+            // Amnezia Specific
             Self::Peer(v) => v.emit(buffer),
             Self::JC(v)
             | Self::Jmin(v)
             | Self::Jmax(v)
             | Self::S1(v)
             | Self::S2(v)
-            | Self::H1(v)
-            | Self::H2(v)
-            | Self::H3(v)
-            | Self::H4(v)
             | Self::S3(v)
-            | Self::S4(v)
-            | Self::I1(v)
-            | Self::I2(v)
-            | Self::I3(v)
-            | Self::I4(v)
-            | Self::I5(v)
-            | Self::DataInit(v)
-            | Self::DataResponse(v)
-            | Self::DataConfirm(v)
-            | Self::DataTransport(v) => emit_u16(buffer, *v).unwrap(),
+            | Self::S4(v) => emit_u16(buffer, *v).unwrap(),
             Self::Other(attr) => attr.emit_value(buffer),
         }
     }
@@ -256,16 +238,16 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>>
                 parse_u16(payload).context("invalid WGDEVICE_A_S2 value")?,
             ),
             WGDEVICE_A_H1 => Self::H1(
-                parse_u16(payload).context("invalid WGDEVICE_A_H1 value")?,
+                parse_string(payload).context("invalid WGDEVICE_A_H1 value")?,
             ),
             WGDEVICE_A_H2 => Self::H2(
-                parse_u16(payload).context("invalid WGDEVICE_A_H2 value")?,
+                parse_string(payload).context("invalid WGDEVICE_A_H2 value")?,
             ),
             WGDEVICE_A_H3 => Self::H3(
-                parse_u16(payload).context("invalid WGDEVICE_A_H3 value")?,
+                parse_string(payload).context("invalid WGDEVICE_A_H3 value")?,
             ),
             WGDEVICE_A_H4 => Self::H4(
-                parse_u16(payload).context("invalid WGDEVICE_A_H4 value")?,
+                parse_string(payload).context("invalid WGDEVICE_A_H4 value")?,
             ),
             WGDEVICE_A_S3 => Self::S3(
                 parse_u16(payload).context("invalid WGDEVICE_A_S3 value")?,
@@ -274,31 +256,19 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>>
                 parse_u16(payload).context("invalid WGDEVICE_A_S4 value")?,
             ),
             WGDEVICE_A_I1 => Self::I1(
-                parse_u16(payload).context("invalid WGDEVICE_A_I1 value")?,
+                parse_string(payload).context("invalid WGDEVICE_A_I1 value")?,
             ),
             WGDEVICE_A_I2 => Self::I2(
-                parse_u16(payload).context("invalid WGDEVICE_A_I2 value")?,
+                parse_string(payload).context("invalid WGDEVICE_A_I2 value")?,
             ),
             WGDEVICE_A_I3 => Self::I3(
-                parse_u16(payload).context("invalid WGDEVICE_A_I3 value")?,
+                parse_string(payload).context("invalid WGDEVICE_A_I3 value")?,
             ),
             WGDEVICE_A_I4 => Self::I4(
-                parse_u16(payload).context("invalid WGDEVICE_A_I4 value")?,
+                parse_string(payload).context("invalid WGDEVICE_A_I4 value")?,
             ),
             WGDEVICE_A_I5 => Self::I5(
-                parse_u16(payload).context("invalid WGDEVICE_A_I5 value")?,
-            ),
-            WGDEVICE_A_DI => Self::DataInit(
-                parse_u16(payload).context("invalid WGDEVICE_A_DI value")?,
-            ),
-            WGDEVICE_A_DR => Self::DataResponse(
-                parse_u16(payload).context("invalid WGDEVICE_A_DR value")?,
-            ),
-            WGDEVICE_A_DC => Self::DataConfirm(
-                parse_u16(payload).context("invalid WGDEVICE_A_DC value")?,
-            ),
-            WGDEVICE_A_DT => Self::DataTransport(
-                parse_u16(payload).context("invalid WGDEVICE_A_DT value")?,
+                parse_string(payload).context("invalid WGDEVICE_A_I5 value")?,
             ),
             kind => Self::Other(
                 DefaultNla::parse(buf)

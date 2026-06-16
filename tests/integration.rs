@@ -151,7 +151,7 @@ async fn test_set_and_get_amnezia_parameters() {
     let ifname = unique_ifname("awg_set");
     create_interface(&ifname).expect("failed to create test interface");
 
-    // Baseline SetDevice + core Amnezia junk parameters.
+    // SetDevice with Amnezia-specific parameters.
     let set_msg = AmneziaWireguardMessage {
         cmd: AmneziaWireguardCmd::SetDevice,
         attributes: vec![
@@ -160,6 +160,14 @@ async fn test_set_and_get_amnezia_parameters() {
             AmneziaWireguardAttribute::JC(4),
             AmneziaWireguardAttribute::Jmin(40),
             AmneziaWireguardAttribute::Jmax(70),
+            AmneziaWireguardAttribute::S1(92),
+            AmneziaWireguardAttribute::S2(115),
+            AmneziaWireguardAttribute::S3(44),
+            AmneziaWireguardAttribute::S4(9),
+            AmneziaWireguardAttribute::H1("61220074".into()),
+            AmneziaWireguardAttribute::H2("6050999999".into()),
+            AmneziaWireguardAttribute::H3("1814368000".into()),
+            AmneziaWireguardAttribute::H4("1951944444".into()),
         ],
     };
 
@@ -219,6 +227,24 @@ async fn test_set_and_get_amnezia_parameters() {
         }
     });
     assert_eq!(jmax, Some(70), "Jmax mismatch");
+
+    let s1 = attrs.iter().find_map(|a| {
+        if let AmneziaWireguardAttribute::S1(v) = a {
+            Some(*v)
+        } else {
+            None
+        }
+    });
+    assert_eq!(s1, Some(92), "S1 mismatch");
+
+    let h1 = attrs.iter().find_map(|a| {
+        if let AmneziaWireguardAttribute::H1(v) = a {
+            Some(v.clone())
+        } else {
+            None
+        }
+    });
+    assert_eq!(h1, Some("61220074".into()), "H1 mismatch");
 
     delete_interface(&ifname);
 }

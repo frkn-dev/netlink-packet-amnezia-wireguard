@@ -1,6 +1,6 @@
 [package]
 name = "netlink-packet-amnezia-wireguard"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 homepage = "https://github.com/frkn-dev/netlink-packet-amnezia-wireguard"
 repository = "https://github.com/frkn-dev/netlink-packet-amnezia-wireguard"
