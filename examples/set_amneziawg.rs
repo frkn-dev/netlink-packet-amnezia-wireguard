@@ -52,7 +52,7 @@ async fn main() {
         AmneziaWireguardAttribute::Jmin(40),
         AmneziaWireguardAttribute::Jmax(70),
         AmneziaWireguardAttribute::S1(0x5566),
-        AmneziaWireguardAttribute::H1(0x1122),
+        AmneziaWireguardAttribute::H1("61220074".into()),
         AmneziaWireguardAttribute::Peers(vec![AmneziaWireguardPeer(vec![
             AmneziaWireguardPeerAttribute::PublicKey(peer_pub_key),
             AmneziaWireguardPeerAttribute::Endpoint(SocketAddr::new(
