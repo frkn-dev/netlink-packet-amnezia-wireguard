@@ -164,10 +164,11 @@ async fn test_set_and_get_amnezia_parameters() {
             AmneziaWireguardAttribute::S2(115),
             AmneziaWireguardAttribute::S3(44),
             AmneziaWireguardAttribute::S4(9),
-            AmneziaWireguardAttribute::H1("61220074".into()),
-            AmneziaWireguardAttribute::H2("2351746464".into()),
-            AmneziaWireguardAttribute::H3("3053333659".into()),
-            AmneziaWireguardAttribute::H4("1789444460".into()),
+            AmneziaWireguardAttribute::H1("61220074-118999195".into()),
+            AmneziaWireguardAttribute::H2("605047389-945520346".into()),
+            AmneziaWireguardAttribute::H3("1477291385-1814368140".into()),
+            AmneziaWireguardAttribute::H4("1951993942-1997499713".into()),
+            AmneziaWireguardAttribute::I1("<r 149>".into()),
         ],
     };
 
@@ -244,7 +245,7 @@ async fn test_set_and_get_amnezia_parameters() {
             None
         }
     });
-    assert_eq!(h1, Some("61220074".into()), "H1 mismatch");
+    assert_eq!(h1, Some("61220074-118999195".into()), "H1 mismatch");
 
     delete_interface(&ifname);
 }
