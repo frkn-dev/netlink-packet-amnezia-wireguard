@@ -4,6 +4,7 @@
 //! emitting generic netlink packets for Amnezia WireGuard interface.
 
 pub mod constants;
+pub mod range;
 
 mod allowedip;
 mod attribute;

@@ -413,3 +413,167 @@ fn test_full_device_config_roundtrip() {
 
     assert_eq!(msg, roundtrip_msg(msg.clone()));
 }
+
+/// AmneziaWG 3.0 encodes magic headers as packed u64 ranges and keepalive
+/// as u32. Parsing must normalize these instead of failing.
+#[test]
+fn test_parse_v3_magic_headers_and_keepalive() {
+    use netlink_packet_core::NlaBuffer;
+
+    use crate::range::u32_range_pack;
+
+    // Device-level: H1 as u64 range, H2 as u64 single value (lo == hi).
+    let h1 = u32_range_pack(61220074, 118999195);
+    let h2 = u32_range_pack(4, 4);
+    let mut raw = Vec::new();
+    for (kind, value) in [(14u16, h1), (15u16, h2)] {
+        let len = (4 + 8) as u16;
+        raw.extend_from_slice(&len.to_le_bytes());
+        raw.extend_from_slice(&kind.to_le_bytes());
+        raw.extend_from_slice(&value.to_le_bytes());
+    }
+    let header = GenlHeader {
+        cmd: AmneziaWireguardCmd::GetDevice.into(),
+        version: 3,
+    };
+    let parsed =
+        AmneziaWireguardMessage::parse_with_param(&raw, header).unwrap();
+    assert_eq!(
+        parsed.attributes,
+        vec![
+            AmneziaWireguardAttribute::H1("61220074-118999195".into()),
+            AmneziaWireguardAttribute::H2("4".into()),
+        ]
+    );
+
+    // Peer-level: keepalive as u32 (packed u16 range 25|25<<16).
+    let mut peer_nla = Vec::new();
+    let keepalive: u32 = 25 | (25 << 16);
+    let attr_len = (4 + 4) as u16;
+    peer_nla.extend_from_slice(&attr_len.to_le_bytes());
+    peer_nla.extend_from_slice(&5u16.to_le_bytes()); // WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL
+    peer_nla.extend_from_slice(&keepalive.to_le_bytes());
+    let buf = NlaBuffer::new_checked(&peer_nla[..]).unwrap();
+    let attr = AmneziaWireguardPeerAttribute::parse(&buf).unwrap();
+    assert_eq!(
+        attr,
+        AmneziaWireguardPeerAttribute::PersistentKeepaliveRange(
+            25 | (25 << 16)
+        )
+    );
+}
+
+/// A 7-digit magic header string from a v1.0 module is also 8 bytes on the
+/// wire; it must be parsed as a string, not as a u64 range.
+#[test]
+fn test_parse_v1_magic_header_string_8_bytes() {
+    let mut raw = Vec::new();
+    let len = (4 + 8) as u16;
+    raw.extend_from_slice(&len.to_le_bytes());
+    raw.extend_from_slice(&14u16.to_le_bytes()); // WGDEVICE_A_H1
+    raw.extend_from_slice(b"1234567\0");
+
+    let header = GenlHeader {
+        cmd: AmneziaWireguardCmd::GetDevice.into(),
+        version: 2,
+    };
+    let parsed =
+        AmneziaWireguardMessage::parse_with_param(&raw, header).unwrap();
+    assert_eq!(
+        parsed.attributes,
+        vec![AmneziaWireguardAttribute::H1("1234567".into())]
+    );
+}
+
+/// The original AmneziaWG (genl version 1) sent magic headers as bare u32.
+#[test]
+fn test_parse_legacy_magic_header_u32() {
+    let mut raw = Vec::new();
+    let len = (4 + 4) as u16;
+    raw.extend_from_slice(&len.to_le_bytes());
+    raw.extend_from_slice(&14u16.to_le_bytes()); // WGDEVICE_A_H1
+    raw.extend_from_slice(&123u32.to_le_bytes());
+
+    let header = GenlHeader {
+        cmd: AmneziaWireguardCmd::GetDevice.into(),
+        version: 1,
+    };
+    let parsed =
+        AmneziaWireguardMessage::parse_with_param(&raw, header).unwrap();
+    assert_eq!(
+        parsed.attributes,
+        vec![AmneziaWireguardAttribute::H1("123".into())]
+    );
+}
+
+/// Range variants emit the AmneziaWG 3.0 u64 wire format; parsing them back
+/// yields the normalized string variants.
+#[test]
+fn test_magic_header_range_emit() {
+    use crate::range::u32_range_pack;
+
+    let msg = AmneziaWireguardMessage {
+        cmd: AmneziaWireguardCmd::SetDevice,
+        attributes: vec![
+            AmneziaWireguardAttribute::H1Range(u32_range_pack(
+                61220074, 118999195,
+            )),
+            AmneziaWireguardAttribute::H4Range(u32_range_pack(4, 4)),
+        ],
+    };
+
+    let mut buffer = vec![0; msg.buffer_len()];
+    msg.emit(&mut buffer);
+
+    // H1 (type 14 / 0x0e): u64 LE 61220074 | 118999195 << 32
+    let mut h1_bytes = vec![0x0c, 0x00, 0x0e, 0x00];
+    h1_bytes
+        .extend_from_slice(&u32_range_pack(61220074, 118999195).to_le_bytes());
+    assert!(buffer
+        .windows(h1_bytes.len())
+        .any(|w| w == h1_bytes.as_slice()));
+
+    let parsed = roundtrip_msg(msg);
+    assert_eq!(
+        parsed.attributes,
+        vec![
+            AmneziaWireguardAttribute::H1("61220074-118999195".into()),
+            AmneziaWireguardAttribute::H4("4".into()),
+        ]
+    );
+}
+
+#[test]
+fn test_v3_device_attributes_roundtrip() {
+    let msg = AmneziaWireguardMessage {
+        cmd: AmneziaWireguardCmd::SetDevice,
+        attributes: vec![
+            AmneziaWireguardAttribute::HeaderProtectionKey([7u8; 32]),
+            AmneziaWireguardAttribute::ContentPaddingAddition(100),
+            AmneziaWireguardAttribute::RekeyAfterTime(120),
+            AmneziaWireguardAttribute::RekeyTimeout(5),
+            AmneziaWireguardAttribute::RejectAfterTime(180),
+            AmneziaWireguardAttribute::KeepaliveTimeout(10),
+            AmneziaWireguardAttribute::MaxHandshakeAttempts(3),
+        ],
+    };
+
+    assert_eq!(msg, roundtrip_msg(msg.clone()));
+}
+
+#[test]
+fn test_keepalive_range_roundtrip() {
+    let msg = AmneziaWireguardMessage {
+        cmd: AmneziaWireguardCmd::SetDevice,
+        attributes: vec![AmneziaWireguardAttribute::Peers(vec![
+            AmneziaWireguardPeer(vec![
+                AmneziaWireguardPeerAttribute::PublicKey([3u8; 32]),
+                AmneziaWireguardPeerAttribute::PersistentKeepaliveRange(
+                    25 | (30 << 16),
+                ),
+            ]),
+        ])],
+    };
+
+    assert_eq!(msg, roundtrip_msg(msg.clone()));
+}

@@ -1,24 +1,36 @@
 // SPDX-License-Identifier: MIT
 
+#[cfg(target_os = "linux")]
 use std::{
     convert::TryInto,
     env::args,
     net::{IpAddr, Ipv4Addr, SocketAddr},
 };
 
+#[cfg(target_os = "linux")]
 use futures::StreamExt;
+#[cfg(target_os = "linux")]
 use genetlink::new_connection;
+#[cfg(target_os = "linux")]
 use netlink_packet_amnezia_wireguard::{
     AmneziaWireguardAddressFamily, AmneziaWireguardAllowedIp,
     AmneziaWireguardAllowedIpAttr, AmneziaWireguardAttribute,
     AmneziaWireguardCmd, AmneziaWireguardMessage, AmneziaWireguardPeer,
     AmneziaWireguardPeerAttribute,
 };
+#[cfg(target_os = "linux")]
 use netlink_packet_core::{
     NetlinkMessage, NetlinkPayload, NLM_F_ACK, NLM_F_REQUEST,
 };
+#[cfg(target_os = "linux")]
 use netlink_packet_generic::GenlMessage;
 
+#[cfg(not(target_os = "linux"))]
+fn main() {
+    eprintln!("This example only works on Linux");
+}
+
+#[cfg(target_os = "linux")]
 #[tokio::main]
 async fn main() {
     env_logger::init();
@@ -105,6 +117,7 @@ async fn main() {
     }
 }
 
+#[cfg(target_os = "linux")]
 fn generate_priv_key() -> [u8; AmneziaWireguardAttribute::WG_KEY_LEN] {
     let mut key = [0u8; AmneziaWireguardAttribute::WG_KEY_LEN];
     getrandom::getrandom(&mut key).unwrap();

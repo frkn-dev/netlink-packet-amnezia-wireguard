@@ -141,7 +141,18 @@ pub enum AmneziaWireguardPeerAttribute {
     PublicKey([u8; NOISE_PUBLIC_KEY_LEN]),
     PresharedKey([u8; NOISE_SYMMETRIC_KEY_LEN]),
     Endpoint(SocketAddr),
+    /// Persistent keepalive interval in seconds.
+    ///
+    /// Emitted as `u16`, understood by kernel modules up to genl family
+    /// version 2 (v1.0.20260725). When parsing, a 2-byte payload produces
+    /// this variant.
     PersistentKeepalive(u16),
+    /// Persistent keepalive as `u32` packing a `u16` range
+    /// (`lo | hi << 16`), the wire format of the AmneziaWG 3.0 kernel
+    /// module (genl family version 3). Produced by parsing 4-byte
+    /// payloads; a plain interval `v` sent by new tools arrives as
+    /// `v | v << 16`.
+    PersistentKeepaliveRange(u32),
     LastHandshake(AmneziaWireguardTimeSpec),
     RxBytes(u64),
     TxBytes(u64),
@@ -161,6 +172,7 @@ impl Nla for AmneziaWireguardPeerAttribute {
                 SocketAddr::V6(_) => SOCKET_ADDR_V6_LEN,
             },
             Self::PersistentKeepalive(v) => size_of_val(v),
+            Self::PersistentKeepaliveRange(v) => size_of_val(v),
             Self::LastHandshake(v) => v.buffer_len(),
             Self::RxBytes(v) => size_of_val(v),
             Self::TxBytes(v) => size_of_val(v),
@@ -176,7 +188,8 @@ impl Nla for AmneziaWireguardPeerAttribute {
             Self::PublicKey(_) => WGPEER_A_PUBLIC_KEY,
             Self::PresharedKey(_) => WGPEER_A_PRESHARED_KEY,
             Self::Endpoint(_) => WGPEER_A_ENDPOINT,
-            Self::PersistentKeepalive(_) => {
+            Self::PersistentKeepalive(_)
+            | Self::PersistentKeepaliveRange(_) => {
                 WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL
             }
             Self::LastHandshake(_) => WGPEER_A_LAST_HANDSHAKE_TIME,
@@ -195,6 +208,7 @@ impl Nla for AmneziaWireguardPeerAttribute {
             Self::PresharedKey(v) => buffer.copy_from_slice(v),
             Self::Endpoint(v) => emit_socket_addr(v, buffer),
             Self::PersistentKeepalive(v) => emit_u16(buffer, *v).unwrap(),
+            Self::PersistentKeepaliveRange(v) => emit_u32(buffer, *v).unwrap(),
             Self::LastHandshake(v) => v.emit(buffer),
             Self::RxBytes(v) => emit_u64(buffer, *v).unwrap(),
             Self::TxBytes(v) => emit_u64(buffer, *v).unwrap(),
@@ -233,9 +247,29 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>>
                     .context("invalid WGPEER_A_ENDPOINT")?,
             ),
             WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL => {
-                Self::PersistentKeepalive(parse_u16(payload).context(
-                    "invalid WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL value",
-                )?)
+                // AmneziaWG 3.0 sends a u32 (packed u16 range), older
+                // modules send a u16.
+                match payload.len() {
+                    2 => {
+                        Self::PersistentKeepalive(parse_u16(payload).context(
+                            "invalid WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL \
+                             value",
+                        )?)
+                    }
+                    4 => Self::PersistentKeepaliveRange(
+                        parse_u32(payload).context(
+                            "invalid WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL \
+                             value",
+                        )?,
+                    ),
+                    _ => {
+                        return Err(DecodeError::from(format!(
+                            "invalid WGPEER_A_PERSISTENT_KEEPALIVE_INTERVAL \
+                             payload length {}",
+                            payload.len()
+                        )))
+                    }
+                }
             }
             WGPEER_A_LAST_HANDSHAKE_TIME => Self::LastHandshake(
                 AmneziaWireguardTimeSpec::parse(buf)

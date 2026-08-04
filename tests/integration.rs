@@ -14,12 +14,16 @@ use std::process::Command;
 use futures::{lock::Mutex, StreamExt};
 use genetlink::new_connection;
 use netlink_packet_amnezia_wireguard::{
-    AmneziaWireguardAttribute, AmneziaWireguardCmd, AmneziaWireguardMessage,
+    range::u32_range_from_string, AmneziaWireguardAttribute,
+    AmneziaWireguardCmd, AmneziaWireguardMessage,
 };
 use netlink_packet_core::{
     NetlinkMessage, NetlinkPayload, NLM_F_ACK, NLM_F_DUMP, NLM_F_REQUEST,
 };
-use netlink_packet_generic::GenlMessage;
+use netlink_packet_generic::{
+    ctrl::{nlas::GenlCtrlAttrs, GenlCtrl, GenlCtrlCmd},
+    GenlMessage,
+};
 
 /// Serializes access to netlink interface creation/deletion across tests.
 static TEST_MUTEX: Mutex<()> = Mutex::new(());
@@ -59,6 +63,34 @@ async fn family_available(handle: &mut genetlink::GenetlinkHandle) -> bool {
         .resolve_family_id::<AmneziaWireguardMessage>()
         .await
         .is_ok()
+}
+
+/// Queries the genl family version of the amneziawg module: 2 for the
+/// v1.0 module, 3 for AmneziaWG 3.0. The magic header wire format depends
+/// on it (string vs packed u64 range).
+async fn family_version(
+    handle: &mut genetlink::GenetlinkHandle,
+) -> Option<u32> {
+    let genlmsg: GenlMessage<GenlCtrl> = GenlMessage::from_payload(GenlCtrl {
+        cmd: GenlCtrlCmd::GetFamily,
+        nlas: vec![GenlCtrlAttrs::FamilyName("amneziawg".to_string())],
+    });
+    let mut nlmsg = NetlinkMessage::from(genlmsg);
+    nlmsg.header.flags = NLM_F_REQUEST | NLM_F_ACK;
+
+    let mut stream = handle.request(nlmsg).await.ok()?;
+    while let Some(result) = stream.next().await {
+        if let Ok(rx) = result {
+            if let NetlinkPayload::InnerMessage(genl) = rx.payload {
+                for nla in &genl.payload.nlas {
+                    if let GenlCtrlAttrs::Version(v) = nla {
+                        return Some(*v);
+                    }
+                }
+            }
+        }
+    }
+    None
 }
 
 async fn send_request(
@@ -151,6 +183,33 @@ async fn test_set_and_get_amnezia_parameters() {
     let ifname = unique_ifname("awg_set");
     create_interface(&ifname).expect("failed to create test interface");
 
+    // AmneziaWG 3.0 (genl version 3) expects magic headers as packed u64
+    // ranges; older modules expect spec strings.
+    let version = family_version(&mut handle).await.unwrap_or(2);
+    let (h1, h2, h3, h4) = if version >= 3 {
+        (
+            AmneziaWireguardAttribute::H1Range(
+                u32_range_from_string("61220074-118999195").unwrap(),
+            ),
+            AmneziaWireguardAttribute::H2Range(
+                u32_range_from_string("605047389-945520346").unwrap(),
+            ),
+            AmneziaWireguardAttribute::H3Range(
+                u32_range_from_string("1477291385-1814368140").unwrap(),
+            ),
+            AmneziaWireguardAttribute::H4Range(
+                u32_range_from_string("1951993942-1997499713").unwrap(),
+            ),
+        )
+    } else {
+        (
+            AmneziaWireguardAttribute::H1("61220074-118999195".into()),
+            AmneziaWireguardAttribute::H2("605047389-945520346".into()),
+            AmneziaWireguardAttribute::H3("1477291385-1814368140".into()),
+            AmneziaWireguardAttribute::H4("1951993942-1997499713".into()),
+        )
+    };
+
     // SetDevice with Amnezia-specific parameters.
     let set_msg = AmneziaWireguardMessage {
         cmd: AmneziaWireguardCmd::SetDevice,
@@ -164,10 +223,10 @@ async fn test_set_and_get_amnezia_parameters() {
             AmneziaWireguardAttribute::S2(115),
             AmneziaWireguardAttribute::S3(44),
             AmneziaWireguardAttribute::S4(9),
-            AmneziaWireguardAttribute::H1("61220074-118999195".into()),
-            AmneziaWireguardAttribute::H2("605047389-945520346".into()),
-            AmneziaWireguardAttribute::H3("1477291385-1814368140".into()),
-            AmneziaWireguardAttribute::H4("1951993942-1997499713".into()),
+            h1,
+            h2,
+            h3,
+            h4,
             AmneziaWireguardAttribute::I1("<r 149>".into()),
         ],
     };

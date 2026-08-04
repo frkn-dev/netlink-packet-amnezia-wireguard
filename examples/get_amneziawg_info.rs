@@ -1,19 +1,31 @@
 // SPDX-License-Identifier: MIT
 
+#[cfg(target_os = "linux")]
 use std::env::args;
 
+#[cfg(target_os = "linux")]
 use futures::StreamExt;
+#[cfg(target_os = "linux")]
 use genetlink::new_connection;
+#[cfg(target_os = "linux")]
 use netlink_packet_amnezia_wireguard::{
     AmneziaWireguardAllowedIp, AmneziaWireguardAllowedIpAttr,
     AmneziaWireguardAttribute, AmneziaWireguardCmd, AmneziaWireguardMessage,
     AmneziaWireguardPeerAttribute,
 };
+#[cfg(target_os = "linux")]
 use netlink_packet_core::{
     NetlinkMessage, NetlinkPayload, NLM_F_DUMP, NLM_F_REQUEST,
 };
+#[cfg(target_os = "linux")]
 use netlink_packet_generic::GenlMessage;
 
+#[cfg(not(target_os = "linux"))]
+fn main() {
+    eprintln!("This example only works on Linux");
+}
+
+#[cfg(target_os = "linux")]
 #[tokio::main]
 async fn main() {
     env_logger::init();
@@ -53,6 +65,7 @@ async fn main() {
     }
 }
 
+#[cfg(target_os = "linux")]
 fn print_wg_payload(wg: AmneziaWireguardMessage) {
     for attr in &wg.attributes {
         match attr {
@@ -88,6 +101,7 @@ fn print_wg_payload(wg: AmneziaWireguardMessage) {
     }
 }
 
+#[cfg(target_os = "linux")]
 fn print_wg_peer(attrs: &[AmneziaWireguardPeerAttribute]) {
     for attr in attrs {
         match attr {
@@ -122,6 +136,7 @@ fn print_wg_peer(attrs: &[AmneziaWireguardPeerAttribute]) {
     }
 }
 
+#[cfg(target_os = "linux")]
 fn print_wg_allowedip(nlas: &AmneziaWireguardAllowedIp) -> Option<()> {
     let ipaddr = nlas.iter().find_map(|nla| {
         if let AmneziaWireguardAllowedIpAttr::IpAddr(addr) = nla {
