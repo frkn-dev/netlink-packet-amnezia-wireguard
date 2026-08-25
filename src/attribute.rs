@@ -4,8 +4,8 @@ use std::convert::TryInto;
 
 use netlink_packet_core::{
     emit_u16, emit_u32, emit_u64, parse_string, parse_u16, parse_u32,
-    parse_u64, DecodeError, DefaultNla, Emitable, ErrorContext, Nla, NlaBuffer,
-    Parseable, NLA_F_NESTED,
+    parse_u64, parse_u8, DecodeError, DefaultNla, Emitable, ErrorContext, Nla,
+    NlaBuffer, Parseable, NLA_F_NESTED,
 };
 
 use super::peer::AmneziaWireguardPeers;
@@ -48,6 +48,9 @@ const WGDEVICE_A_REKEY_TIMEOUT: u16 = 29;
 const WGDEVICE_A_REJECT_AFTER_TIME: u16 = 30;
 const WGDEVICE_A_KEEPALIVE_TIMEOUT: u16 = 31;
 const WGDEVICE_A_MAX_HANDSHAKE_ATTEMPTS: u16 = 32;
+// AmneziaWG 3.1 attributes
+const WGDEVICE_A_RANDOM_TRAILERS: u16 = 33;
+const WGDEVICE_A_DISABLE_COOKIES: u16 = 34;
 
 const HEADER_PROTECTION_KEY_LEN: usize = 32;
 
@@ -140,6 +143,10 @@ pub enum AmneziaWireguardAttribute {
     RejectAfterTime(u32),
     KeepaliveTimeout(u32),
     MaxHandshakeAttempts(u32),
+    // AmneziaWG 3.1 attributes (genl family version is still 3; only the
+    // 3.1+ kernel module accepts them).
+    RandomTrailers(bool),
+    DisableCookies(bool),
     Other(DefaultNla),
 }
 
@@ -177,6 +184,7 @@ impl Nla for AmneziaWireguardAttribute {
             | Self::H2Range(_)
             | Self::H3Range(_)
             | Self::H4Range(_) => 8,
+            Self::RandomTrailers(_) | Self::DisableCookies(_) => 1,
             // Amnezia Specific Fields
             Self::Peer(v) => v.buffer_len(),
             Self::JC(_)
@@ -227,6 +235,8 @@ impl Nla for AmneziaWireguardAttribute {
             Self::RejectAfterTime(_) => WGDEVICE_A_REJECT_AFTER_TIME,
             Self::KeepaliveTimeout(_) => WGDEVICE_A_KEEPALIVE_TIMEOUT,
             Self::MaxHandshakeAttempts(_) => WGDEVICE_A_MAX_HANDSHAKE_ATTEMPTS,
+            Self::RandomTrailers(_) => WGDEVICE_A_RANDOM_TRAILERS,
+            Self::DisableCookies(_) => WGDEVICE_A_DISABLE_COOKIES,
             Self::Other(attr) => attr.kind(),
         }
     }
@@ -273,6 +283,9 @@ impl Nla for AmneziaWireguardAttribute {
             | Self::S2(v)
             | Self::S3(v)
             | Self::S4(v) => emit_u16(buffer, *v).unwrap(),
+            Self::RandomTrailers(v) | Self::DisableCookies(v) => {
+                buffer[0] = u8::from(*v)
+            }
             Self::Other(attr) => attr.emit_value(buffer),
         }
     }
@@ -411,6 +424,16 @@ impl<'a, T: AsRef<[u8]> + ?Sized> Parseable<NlaBuffer<&'a T>>
                     "invalid WGDEVICE_A_MAX_HANDSHAKE_ATTEMPTS value",
                 )?)
             }
+            WGDEVICE_A_RANDOM_TRAILERS => Self::RandomTrailers(
+                parse_u8(payload)
+                    .context("invalid WGDEVICE_A_RANDOM_TRAILERS value")?
+                    != 0,
+            ),
+            WGDEVICE_A_DISABLE_COOKIES => Self::DisableCookies(
+                parse_u8(payload)
+                    .context("invalid WGDEVICE_A_DISABLE_COOKIES value")?
+                    != 0,
+            ),
             kind => Self::Other(
                 DefaultNla::parse(buf)
                     .context(format!("unknown NLA type {kind}"))?,

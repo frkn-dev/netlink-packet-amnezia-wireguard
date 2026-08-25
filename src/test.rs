@@ -260,6 +260,36 @@ fn test_all_amnezia_attributes_emit_and_roundtrip() {
 }
 
 #[test]
+fn test_awg31_device_attributes_roundtrip() {
+    let msg = AmneziaWireguardMessage {
+        cmd: AmneziaWireguardCmd::SetDevice,
+        attributes: vec![
+            AmneziaWireguardAttribute::IfName("awg0".into()),
+            AmneziaWireguardAttribute::RandomTrailers(true),
+            AmneziaWireguardAttribute::DisableCookies(false),
+        ],
+    };
+
+    assert_eq!(msg, roundtrip_msg(msg.clone()));
+}
+
+#[test]
+fn test_awg31_attribute_wire_format() {
+    use netlink_packet_core::{Nla, NlaBuffer};
+
+    let attr = AmneziaWireguardAttribute::RandomTrailers(true);
+    let mut buf = vec![0; attr.buffer_len()];
+    attr.emit(&mut buf);
+    // NLA header: len = 5 (4 header + 1 payload), kind = 33, then the u8
+    // payload zero-padded to 4-byte alignment.
+    assert_eq!(buf, vec![0x05, 0x00, 0x21, 0x00, 0x01, 0x00, 0x00, 0x00]);
+
+    let parsed =
+        AmneziaWireguardAttribute::parse(&NlaBuffer::new(&buf)).unwrap();
+    assert_eq!(parsed, AmneziaWireguardAttribute::RandomTrailers(true));
+}
+
+#[test]
 fn test_allowed_ips_ipv6_roundtrip() {
     let msg = AmneziaWireguardMessage {
         cmd: AmneziaWireguardCmd::SetDevice,

@@ -1,4 +1,11 @@
 # Changelog
+## [0.2.1] - 2026-08-25
+### New features
+ - Added AmneziaWG 3.1 device attributes: `RandomTrailers` and
+   `DisableCookies` (`u8` flags, attribute kinds 33 and 34). Only the
+   AmneziaWG 3.1+ kernel module accepts them; the genl family version is
+   still 3.
+
 ## [0.1.2] - 2026-06-06
 ### Breaking changes
  - Changed `H1`..`H4` and `I1`..`I5` attribute types from `u16` to `String`
